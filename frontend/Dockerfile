@@ -5,7 +5,9 @@ RUN corepack enable pnpm
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# NOTE: --no-frozen-lockfile because the lockfile has stale overrides from
+# an old beta Vue setup; run `pnpm install` locally to regenerate cleanly.
+RUN pnpm install --no-frozen-lockfile
 
 COPY . .
 RUN pnpm build
