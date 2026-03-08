@@ -2,6 +2,7 @@
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import LocaleToggle from '@/components/ui/LocaleToggle.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -33,7 +34,10 @@ const navItems = [
         <span class="font-display text-lg font-black tracking-tight">
           {{ t('board.title', { id: route.params['id'] }) }}
         </span>
-        <ThemeToggle />
+        <div class="flex items-center gap-1">
+          <LocaleToggle />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
 

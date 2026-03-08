@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import { useI18n } from "vue-i18n";
+import ThemeToggle from "@/components/ui/ThemeToggle.vue";
+import LocaleToggle from "@/components/ui/LocaleToggle.vue";
 
-const { t } = useI18n()
+const { t } = useI18n();
 </script>
 
 <template>
@@ -18,7 +19,7 @@ const { t } = useI18n()
           BISQNODE
         </RouterLink>
 
-        <!-- Nav + toggle -->
+        <!-- Nav + toggles -->
         <div class="flex items-center gap-1">
           <nav class="flex items-center">
             <RouterLink
@@ -37,7 +38,8 @@ const { t } = useI18n()
             </RouterLink>
           </nav>
 
-          <div class="ml-3 border-l-2 border-nb-border pl-3">
+          <div class="ml-3 border-l-2 border-nb-border pl-3 flex items-center gap-1">
+            <LocaleToggle />
             <ThemeToggle />
           </div>
         </div>
