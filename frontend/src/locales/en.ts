@@ -48,6 +48,16 @@ export default {
     back: '← Back',
     submit: 'JOIN →',
   },
+  lang: {
+    label: 'Language',
+    en: 'English',
+    ptBR: 'Portuguese',
+  },
+  window: {
+    minimize: 'Minimize',
+    maximize: 'Maximize',
+    close: 'Close',
+  },
   board: {
     title: 'Board #{id}',
     nav: {

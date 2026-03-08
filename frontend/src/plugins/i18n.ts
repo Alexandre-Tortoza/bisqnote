@@ -3,8 +3,18 @@ import en from '@/locales/en'
 import ptBR from '@/locales/pt-BR'
 
 function detectLocale(): string {
+  if (typeof localStorage !== 'undefined') {
+    const stored = localStorage.getItem('bisqnode-locale')
+    if (stored === 'en' || stored === 'pt-BR') return stored
+  }
+
   const supported = ['pt-BR', 'pt', 'en']
-  const languages = navigator.languages?.length ? [...navigator.languages] : [navigator.language]
+  const languages =
+    typeof navigator !== 'undefined'
+      ? navigator.languages?.length
+        ? [...navigator.languages]
+        : [navigator.language]
+      : []
 
   for (const lang of languages) {
     if (supported.includes(lang)) return lang
