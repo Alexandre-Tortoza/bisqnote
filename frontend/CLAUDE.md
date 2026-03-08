@@ -17,37 +17,54 @@ pnpm type-check       # vue-tsc
 
 To run a single test file:
 ```bash
-pnpm test:unit src/__tests__/MyComponent.spec.ts
+pnpm test:unit src/features/auth/__tests__/useAuth.spec.ts
 ```
 
 ## Architecture
 
 Vue 3 SPA (no Nuxt) part of a monorepo (`bisqnode`). Build tool is Vite.
 
-**Clean Architecture** — code is organized by domain/feature, with strict layer separation:
+**Feature-based modular architecture** — each domain feature is self-contained; shared code lives in global folders.
 
 ```
 src/
-  domain/            # Pure business logic: entities, value objects, interfaces
-  application/       # Use cases (interactors): orchestrate domain, no framework deps
-  infrastructure/    # External adapters: API clients, localStorage, HTTP
-  presentation/      # Vue layer: components, composables, stores, router, views
-  main.ts            # Composition root: wires all layers together
+  features/            # one folder per domain feature
+    <name>/
+      components/      # components used only by this feature
+      composables/     # composables scoped to this feature
+      utils/           # pure helpers scoped to this feature
+      __tests__/       # unit tests colocated with the feature
+      store.ts         # Pinia store for this feature
+      types.ts         # TypeScript types for this feature
+      index.ts         # public barrel — only import features via this file
+  components/          # global UI / design system
+    ui/                # primitives: Button, Input, Badge, Icon…
+    layout/            # Header, Sidebar, Container, PageWrapper…
+    forms/             # FormField, FormLabel, FormError…
+    feedback/          # Toast, Modal, Alert, Spinner…
+  composables/         # global composables (useDebounce, useMediaQuery…)
+  utils/               # global pure utility functions
+  stores/              # global Pinia stores (app-level state, e.g. theme, session)
+  types/               # global TypeScript types and interfaces
+  router/              # Vue Router — imports views from features
+  assets/
+  main.ts
   App.vue
-e2e/                 # Playwright specs (baseURL: localhost:5173)
+e2e/                   # Playwright specs (baseURL: localhost:5173)
 ```
 
-**Dependency rule:** `presentation` → `application` → `domain`. Infrastructure implements interfaces defined in domain/application. No layer imports from a higher one.
-
-**Modules:** each feature lives in its own folder across layers (e.g. `domain/order/`, `application/order/`, `presentation/order/`). No cross-feature imports — go through use cases.
+**Rules:**
+- Features are isolated — no cross-feature direct imports; go through `index.ts`
+- Global `components/`, `composables/`, `utils/` are for truly shared code only
+- Feature `index.ts` is the public API; internals are private to the feature
+- Router imports route-level views from feature `index.ts`
 
 **Import alias:** `@` → `./src`
 
 ## Principles
 
-- **Clean Architecture**: layers are isolated; domain has zero framework dependencies
 - **Modular**: features are self-contained; adding or removing one doesn't break others
-- **DRY**: extract shared logic to composables (presentation) or services (application); never duplicate business rules
+- **DRY**: extract shared logic to global composables/utils; never duplicate
 - **YAGNI**: implement only what the current use case requires; no speculative abstractions
 - **Clean Code**: small focused functions, intention-revealing names, no comments for obvious code — document *why*, not *what*
 
@@ -63,8 +80,11 @@ e2e/                 # Playwright specs (baseURL: localhost:5173)
 - Unit: Vitest + `@vue/test-utils`, jsdom environment
 - E2E: Playwright (Chromium/Firefox/WebKit), auto-starts dev server
 - TDD flow: write failing test → implement → green → refactor
-- Domain and application layers must have 100% unit test coverage; infrastructure is integration-tested
+- Tests live in `__tests__/` inside each feature folder; global utils/composables tested in their own `__tests__/`
 
 ## Pinia Stores
 
-Stores live in `presentation/` and are thin: they call application use cases, hold UI state, and do not contain business logic. Use Composition API style (`defineStore` with a setup function), not Options API.
+- Feature stores live in `src/features/<name>/store.ts` — scoped to that feature
+- Global stores live in `src/stores/` — app-level concerns only (e.g. auth session, theme)
+- All stores use Composition API style (`defineStore` with setup function), not Options API
+- Stores are thin: hold UI/domain state and call composables or services; no raw business logic

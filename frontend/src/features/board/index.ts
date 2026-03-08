@@ -1,0 +1,6 @@
+export { default as BoardHomeView } from './views/BoardHomeView.vue'
+export { default as BoardInviteView } from './views/BoardInviteView.vue'
+export { default as BoardCalendarView } from './views/BoardCalendarView.vue'
+export { default as BoardKanbanView } from './views/BoardKanbanView.vue'
+export { default as BoardChatView } from './views/BoardChatView.vue'
+export { default as BoardConfigView } from './views/BoardConfigView.vue'

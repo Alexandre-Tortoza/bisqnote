@@ -1,0 +1,22 @@
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Instrument+Serif:ital@0;1&display=swap");
+
+@theme {
+  /* Colors */
+  --color-brand-50: #fef2f1;
+  --color-brand-100: #fde0de;
+  --color-brand-200: #fbc2be;
+  --color-brand-300: #f8a09a;
+  --color-brand-400: #f58378;
+  --color-brand-500: #f2695c;
+  --color-brand-600: #e44c3e;
+  --color-brand-700: #c83529;
+  --color-brand-800: #9e2820;
+  --color-brand-900: #6f1c16;
+  --color-brand-950: #440e0a;
+  --color-brand-1000: #1e0403;
+
+  /* Fonts */
+  --font-display: "Syne", sans-serif;
+  --font-mono: "Space Mono", monospace;
+  --font-serif: "Instrument Serif", serif;
+}
