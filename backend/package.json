@@ -10,7 +10,8 @@
     "test:coverage": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/infra/db/seed/dev.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",
