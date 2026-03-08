@@ -19,6 +19,7 @@
     "fastify-plugin": "^5.1.0",
     "postgres": "^3.4.8"
   },
+  "packageManager": "pnpm@10.28.2",
   "devDependencies": {
     "@types/node": "^25.3.5",
     "@vitest/coverage-v8": "^4.0.18",
