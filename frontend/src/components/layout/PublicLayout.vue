@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -20,9 +23,9 @@ import ThemeToggle from '@/components/ui/ThemeToggle.vue'
           <nav class="flex items-center">
             <RouterLink
               v-for="{ to, label } in [
-                { to: '/', label: 'HOME' },
-                { to: '/create', label: 'CREATE' },
-                { to: '/join', label: 'JOIN' },
+                { to: '/', label: t('nav.home') },
+                { to: '/create', label: t('nav.create') },
+                { to: '/join', label: t('nav.join') },
               ]"
               :key="to"
               :to="to"

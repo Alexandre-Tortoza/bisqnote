@@ -31,9 +31,9 @@
 
 /* Dark mode overrides — cascade into Tailwind utilities via CSS variables */
 .dark {
-  --color-nb-bg: #0d0d0d;
-  --color-nb-surface: #1a1a1a;
-  --color-nb-border: #ffffff;
+  --color-nb-bg: #000000;
+  --color-nb-surface: #0a0101;
+  --color-nb-border: #9e2820;
   --color-nb-text: #ffffff;
   --color-nb-muted: #999999;
   --color-nb-accent: #f2695c;

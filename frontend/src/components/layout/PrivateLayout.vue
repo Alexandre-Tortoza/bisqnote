@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 
 const navItems = [
-  { name: 'board-home', label: 'HOME', icon: '⌂' },
-  { name: 'board-invite', label: 'INVITE', icon: '✉' },
-  { name: 'board-kanban', label: 'KANBAN', icon: '▦' },
-  { name: 'board-calendar', label: 'CALENDAR', icon: '▦' },
-  { name: 'board-chat', label: 'CHAT', icon: '◈' },
-  { name: 'board-config', label: 'CONFIG', icon: '⚙' },
+  { name: 'board-home', key: 'home', icon: '⌂' },
+  { name: 'board-invite', key: 'invite', icon: '✉' },
+  { name: 'board-kanban', key: 'kanban', icon: '▦' },
+  { name: 'board-calendar', key: 'calendar', icon: '▦' },
+  { name: 'board-chat', key: 'chat', icon: '◈' },
+  { name: 'board-config', key: 'config', icon: '⚙' },
 ]
 </script>
 
@@ -29,7 +31,7 @@ const navItems = [
 
       <div class="flex-1 px-6 flex items-center justify-between">
         <span class="font-display text-lg font-black tracking-tight">
-          Board #{{ route.params['id'] }}
+          {{ t('board.title', { id: route.params['id'] }) }}
         </span>
         <ThemeToggle />
       </div>
@@ -52,7 +54,7 @@ const navItems = [
             ]"
           >
             <span class="text-base leading-none">{{ item.icon }}</span>
-            {{ item.label }}
+            {{ t(`board.nav.${item.key}`) }}
           </RouterLink>
         </nav>
       </aside>

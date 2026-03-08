@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AppButton from '@/components/ui/AppButton.vue'
+import WindowComponent from '@/components/ui/WindowComponent.vue'
+
+const { t } = useI18n()
 
 const name = ref('')
 const isPrivate = ref(false)
@@ -10,7 +14,7 @@ const submitted = ref(false)
 const nameError = ref('')
 
 function validate(): boolean {
-  nameError.value = name.value.trim() ? '' : 'Board name is required'
+  nameError.value = name.value.trim() ? '' : t('create.errorName')
   return !nameError.value
 }
 
@@ -28,14 +32,9 @@ function handleSubmit() {
 <template>
   <div class="min-h-[calc(100vh-3.5rem)] bg-nb-bg flex items-center justify-center px-6 py-16">
     <div class="w-full max-w-lg">
-      <!-- Header -->
-      <div class="border-2 border-nb-border border-b-0 bg-nb-border px-6 py-3">
-        <h1 class="font-display text-xl font-black text-nb-bg tracking-tight">CREATE A BOARD</h1>
-      </div>
-
-      <!-- Form card -->
+      <WindowComponent :title="t('create.pageTitle')">
       <form
-        class="border-2 border-nb-border bg-nb-surface p-8 shadow-[var(--nb-shadow-lg)] flex flex-col gap-6"
+        class="flex flex-col gap-6"
         novalidate
         @submit.prevent="handleSubmit"
       >
@@ -45,14 +44,14 @@ function handleSubmit() {
             for="create-name"
             class="font-mono text-xs font-bold uppercase tracking-wider text-nb-text"
           >
-            Board name <span class="text-nb-accent">*</span>
+            {{ t('create.labelName') }} <span class="text-nb-accent">{{ t('create.required') }}</span>
           </label>
           <input
             id="create-name"
             v-model="name"
             name="name"
             type="text"
-            placeholder="e.g. Team Alpha"
+            :placeholder="t('create.placeholderName')"
             autocomplete="off"
             class="bg-nb-bg border-2 border-nb-border text-nb-text font-mono text-sm px-3 py-2 outline-none shadow-[var(--nb-shadow-sm)] focus:shadow-[var(--nb-shadow)] transition-all duration-100 placeholder:text-nb-muted w-full"
             @input="onNameInput"
@@ -62,7 +61,7 @@ function handleSubmit() {
             data-testid="name-error"
             class="font-mono text-xs text-nb-accent font-bold"
           >
-            ✕ {{ nameError }}
+            {{ nameError }}
           </span>
         </div>
 
@@ -75,7 +74,7 @@ function handleSubmit() {
             class="w-4 h-4 border-2 border-nb-border bg-nb-bg accent-nb-accent cursor-pointer"
           />
           <span class="font-mono text-sm text-nb-text group-hover:text-nb-accent transition-colors">
-            Password-protect this board
+            {{ t('create.togglePrivate') }}
           </span>
         </label>
 
@@ -85,14 +84,14 @@ function handleSubmit() {
             for="create-password"
             class="font-mono text-xs font-bold uppercase tracking-wider text-nb-text"
           >
-            Password
+            {{ t('create.labelPassword') }}
           </label>
           <input
             id="create-password"
             v-model="password"
             name="password"
             type="password"
-            placeholder="Board password"
+            :placeholder="t('create.placeholderPassword')"
             autocomplete="new-password"
             class="bg-nb-bg border-2 border-nb-border text-nb-text font-mono text-sm px-3 py-2 outline-none shadow-[var(--nb-shadow-sm)] focus:shadow-[var(--nb-shadow)] transition-all duration-100 placeholder:text-nb-muted w-full"
           />
@@ -101,11 +100,12 @@ function handleSubmit() {
         <!-- Actions -->
         <div class="flex items-center justify-between pt-2 border-t-2 border-nb-border">
           <RouterLink to="/" class="font-mono text-xs text-nb-muted hover:text-nb-text transition-colors">
-            ← Back
+            {{ t('create.back') }}
           </RouterLink>
-          <AppButton type="submit" variant="primary" size="md">CREATE →</AppButton>
+          <AppButton type="submit" variant="primary" size="md">{{ t('create.submit') }}</AppButton>
         </div>
       </form>
+      </WindowComponent>
     </div>
   </div>
 </template>

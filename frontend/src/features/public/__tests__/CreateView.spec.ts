@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { RouterLinkStub } from '@vue/test-utils'
+import { createTestI18n } from '@/test-utils/i18n'
 import CreateView from '../views/CreateView.vue'
 
 const mountCreate = () =>
   mount(CreateView, {
-    global: { stubs: { RouterLink: RouterLinkStub } },
+    global: { stubs: { RouterLink: RouterLinkStub }, plugins: [createTestI18n()] },
   })
 
 describe('CreateView', () => {
