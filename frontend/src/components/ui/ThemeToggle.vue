@@ -1,0 +1,31 @@
+<script setup lang="ts">
+import { useThemeStore, type Theme } from '@/stores/theme'
+
+const themeStore = useThemeStore()
+
+const options: { value: Theme; label: string; icon: string }[] = [
+  { value: 'light', label: 'Light', icon: '☀' },
+  { value: 'system', label: 'System', icon: '◑' },
+  { value: 'dark', label: 'Dark', icon: '●' },
+]
+</script>
+
+<template>
+  <div class="inline-flex border-2 border-nb-border" role="group" aria-label="Theme">
+    <button
+      v-for="opt in options"
+      :key="opt.value"
+      :aria-label="opt.label"
+      :aria-pressed="themeStore.theme === opt.value"
+      :class="[
+        'px-3 py-1.5 font-mono text-xs transition-all border-r-2 border-nb-border last:border-r-0',
+        themeStore.theme === opt.value
+          ? 'bg-nb-border text-nb-bg'
+          : 'bg-nb-surface text-nb-text hover:bg-nb-border hover:text-nb-bg',
+      ]"
+      @click="themeStore.setTheme(opt.value)"
+    >
+      {{ opt.icon }}
+    </button>
+  </div>
+</template>
