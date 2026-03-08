@@ -8,3 +8,5 @@
 
 # Kamal secrets
 .kamal/secrets
+
+/backend/dist/
