@@ -1,0 +1,10 @@
+# Postgres data (mounted via docker-compose volume)
+/database/*
+!/database/.gitkeep
+
+# Environment
+.env
+.env.*.local
+
+# Kamal secrets
+.kamal/secrets
