@@ -1,33 +1,35 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import { useThemeStore, type Theme } from '@/stores/theme'
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+import { useThemeStore, type Theme } from "@/stores/theme";
 
-const { t } = useI18n()
-const themeStore = useThemeStore()
+const { t } = useI18n();
+const themeStore = useThemeStore();
 
 const options: { value: Theme; labelKey: string; icon: string }[] = [
-  { value: 'light', labelKey: 'theme.light', icon: '☀' },
-  { value: 'system', labelKey: 'theme.system', icon: '◑' },
-  { value: 'dark', labelKey: 'theme.dark', icon: '●' },
-]
+  { value: "light", labelKey: "theme.light", icon: "☀" },
+  { value: "system", labelKey: "theme.system", icon: "◑" },
+  { value: "dark", labelKey: "theme.dark", icon: "●" },
+];
+
+const activeOption = computed(() => options.find((o) => o.value === themeStore.theme));
+
+function cycleTheme() {
+  const index = options.findIndex((o) => o.value === themeStore.theme);
+  const next = options[(index + 1) % options.length];
+  themeStore.setTheme(next.value);
+}
 </script>
 
 <template>
-  <div class="inline-flex border-2 border-nb-border" :role="'group'" :aria-label="t('theme.label')">
-    <button
-      v-for="opt in options"
-      :key="opt.value"
-      :aria-label="t(opt.labelKey)"
-      :aria-pressed="themeStore.theme === opt.value"
-      :class="[
-        'px-3 py-1.5 font-mono text-xs transition-all border-r-2 border-nb-border last:border-r-0',
-        themeStore.theme === opt.value
-          ? 'bg-nb-border text-nb-bg'
-          : 'bg-nb-surface text-nb-text hover:bg-nb-border hover:text-nb-bg',
-      ]"
-      @click="themeStore.setTheme(opt.value)"
-    >
-      {{ opt.icon }}
-    </button>
-  </div>
+  <button
+    v-if="activeOption"
+    :aria-label="t(activeOption.labelKey)"
+    :title="t(activeOption.labelKey)"
+    aria-pressed="true"
+    class="inline-flex items-center justify-center px-3 py-1.5 font-mono text-xs border-2 border-nb-border bg-nb-border text-nb-bg transition-all hover:opacity-80"
+    @click="cycleTheme"
+  >
+    {{ activeOption.icon }}
+  </button>
 </template>
