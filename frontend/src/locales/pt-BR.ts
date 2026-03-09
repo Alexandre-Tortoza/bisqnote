@@ -11,7 +11,7 @@ export default {
     dark: "Escuro",
   },
   home: {
-    badge: "α v0.1 — acesso antecipado",
+    badge: "v0.1 — acesso antecipado",
     headline1: "QUADROS",
     headline2: "PRIVADOS PARA",
     headline3: "TODOS.",
@@ -23,6 +23,7 @@ export default {
     joinDesc: "Já tem um link ou ID de quadro?",
     go: "→ IR",
     footer: "BISQNODE — todo o conteúdo é criptografado de ponta a ponta no seu navegador",
+    create: "criar",
   },
   create: {
     pageTitle: "CRIAR UM QUADRO",
@@ -33,6 +34,9 @@ export default {
     togglePrivate: "Proteger este quadro com senha",
     labelPassword: "Senha",
     placeholderPassword: "Senha do quadro",
+    labelOwnerEmail: "Email do proprietário (opcional)",
+    placeholderOwnerEmail: "voce{'@'}exemplo.com",
+    hintOwnerEmail: "Receba um link de recuperação deste quadro",
     back: "← Voltar",
     submit: "CRIAR →",
   },
