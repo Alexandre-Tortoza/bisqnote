@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@fastify/cors':
+        specifier: ^11.2.0
+        version: 11.2.0
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -27,9 +30,6 @@ importers:
         specifier: ^3.4.8
         version: 3.4.8
     devDependencies:
-      '@fastify/cors':
-        specifier: ^11.2.0
-        version: 11.2.0
       '@types/bcryptjs':
         specifier: ^3.0.0
         version: 3.0.0
