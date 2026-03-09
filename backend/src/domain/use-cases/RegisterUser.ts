@@ -24,7 +24,7 @@ export class RegisterUserUseCase {
     const existing = await this.userRepo.findByUsername(username)
     if (existing) throw new AppError('USER_ALREADY_EXISTS', 'Username already taken')
 
-    const passwordHash = await hash(password, 10)
+    const passwordHash = await hash(password, 12)
     const userToken = crypto.randomUUID()
     const tokenHash = createHash('sha256').update(userToken).digest('hex')
 

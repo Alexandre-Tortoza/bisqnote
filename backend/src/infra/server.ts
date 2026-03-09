@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import { dbPlugin } from "./http/plugins/db.js";
 import { emailPlugin } from "./http/plugins/email.js";
 import { errorHandlerPlugin } from "./http/plugins/errorHandler.js";
@@ -16,11 +17,20 @@ import { DrizzleUserRepository } from "./repositories/DrizzleUserRepository.js";
  * Plugins and routes are registered here.
  */
 export async function buildApp() {
-  const app = Fastify({ logger: true });
+  // 1 MB body limit — prevents memory exhaustion from oversized payloads
+  const app = Fastify({ logger: true, bodyLimit: 1_048_576 });
 
   await app.register(errorHandlerPlugin);
   await app.register(cors, {
     origin: process.env["CORS_ORIGIN"] ?? "http://localhost:5173",
+  });
+
+  // Global rate limit: 200 requests / 15 min per IP.
+  // Sensitive endpoints apply their own stricter limits (see routes).
+  await app.register(rateLimit, {
+    global: true,
+    max: 200,
+    timeWindow: '15 minutes',
   });
   await app.register(dbPlugin);
   await app.register(emailPlugin);

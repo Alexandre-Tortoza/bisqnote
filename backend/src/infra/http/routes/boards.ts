@@ -20,12 +20,17 @@ const createBoardSchema = {
   type: 'object',
   required: ['name', 'userToken'],
   properties: {
-    name:       { type: 'string', minLength: 1 },
+    name:       { type: 'string', minLength: 1, maxLength: 200 },
     isPrivate:  { type: 'boolean' },
-    password:   { type: 'string' },
-    ownerEmail: { type: 'string', format: 'email' },
+    // Private-board passwords: 8–128 chars — same reasoning as user passwords.
+    password:   { type: 'string', minLength: 8, maxLength: 128 },
+    ownerEmail: { type: 'string', format: 'email', maxLength: 254 },
     userToken:  { type: 'string', minLength: 1 },
   },
+  // When isPrivate is true, enforce password at the schema layer as well so
+  // invalid requests are rejected before reaching domain logic.
+  if:   { properties: { isPrivate: { const: true } }, required: ['isPrivate'] },
+  then: { required: ['password'] },
   additionalProperties: false,
 }
 
@@ -33,7 +38,7 @@ const recoverSchema = {
   type: 'object',
   required: ['email'],
   properties: {
-    email: { type: 'string', format: 'email' },
+    email: { type: 'string', format: 'email', maxLength: 254 },
   },
   additionalProperties: false,
 }
@@ -42,8 +47,9 @@ const joinBoardSchema = {
   type: 'object',
   required: ['boardId', 'userToken'],
   properties: {
-    boardId:   { type: 'string', minLength: 1 },
-    password:  { type: 'string' },
+    boardId:   { type: 'string', minLength: 1, maxLength: 100 },
+    // Join password — same constraints as create to ensure consistent enforcement.
+    password:  { type: 'string', minLength: 8, maxLength: 128 },
     userToken: { type: 'string', minLength: 1 },
   },
   additionalProperties: false,
@@ -78,7 +84,11 @@ export async function boardRoutes(fastify: FastifyInstance, options: BoardRoutes
 
   fastify.post<{ Body: { email: string } }>(
     '/api/boards/recover',
-    { schema: { body: recoverSchema } },
+    {
+      schema: { body: recoverSchema },
+      // Tight rate limit: sending recovery emails is a prime spam/abuse vector.
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    },
     async (request, reply) => {
       const useCase = new RecoverBoardsUseCase(
         options.boardRepo,

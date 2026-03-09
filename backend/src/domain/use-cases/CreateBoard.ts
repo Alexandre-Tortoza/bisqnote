@@ -42,7 +42,7 @@ export class CreateBoardUseCase {
     const user = await this.userRepo.findByTokenHash(tokenHash)
     if (!user) throw new AppError('INVALID_USER_TOKEN', 'Invalid or expired user token')
 
-    const passwordHash = isPrivate && password ? await hash(password, 10) : null
+    const passwordHash = isPrivate && password ? await hash(password, 12) : null
     const encryptedContent = JSON.stringify({ name })
 
     const board = await this.boardRepo.create({
@@ -53,7 +53,7 @@ export class CreateBoardUseCase {
     })
 
     const memberToken = crypto.randomUUID()
-    const memberTokenHash = await hash(memberToken, 10)
+    const memberTokenHash = await hash(memberToken, 12)
 
     const member = await this.memberRepo.create({
       boardId: board.id,

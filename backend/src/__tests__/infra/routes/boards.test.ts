@@ -113,8 +113,28 @@ describe('POST /api/boards', () => {
       url: '/api/boards',
       payload: { name: 'Secret', isPrivate: true, userToken: 'valid-token' },
     })
+    // Schema-level 'if/then' rejects the request before it reaches domain logic
     expect(res.statusCode).toBe(400)
-    expect(res.json().error).toBe('Password required for private boards')
+  })
+
+  it('returns 400 when board password is shorter than 8 characters', async () => {
+    const { app } = await buildTestApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/boards',
+      payload: { name: 'Secret', isPrivate: true, password: 'short', userToken: 'valid-token' },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('returns 400 when board name exceeds 200 characters', async () => {
+    const { app } = await buildTestApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/boards',
+      payload: { name: 'A'.repeat(201), userToken: 'valid-token' },
+    })
+    expect(res.statusCode).toBe(400)
   })
 
   it('returns 401 when userToken is invalid', async () => {

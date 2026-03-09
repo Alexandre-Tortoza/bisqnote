@@ -42,7 +42,7 @@ export class JoinBoardUseCase {
     if (!user) throw new AppError('INVALID_USER_TOKEN', 'Invalid or expired user token')
 
     const memberToken = crypto.randomUUID()
-    const memberTokenHash = await hash(memberToken, 10)
+    const memberTokenHash = await hash(memberToken, 12)
 
     const existing = await this.memberRepo.findByUserAndBoard(user.id, boardId)
 
