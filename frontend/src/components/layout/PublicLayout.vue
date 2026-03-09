@@ -3,7 +3,7 @@ import { useI18n } from "vue-i18n";
 import ThemeToggle from "@/components/ui/ThemeToggle.vue";
 import LocaleToggle from "@/components/ui/LocaleToggle.vue";
 
-const { t } = useI18n();
+// const { t } = useI18n(); // Not using now
 </script>
 
 <template>
