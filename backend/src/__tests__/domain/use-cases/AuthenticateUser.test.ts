@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { IUserRepository } from '../../../domain/repositories/IUserRepository.js'
 import type { UserEntity } from '../../../domain/entities/User.js'
 import { AuthenticateUserUseCase } from '../../../domain/use-cases/AuthenticateUser.js'
-import { AppError } from '../../../domain/errors/AppError.js'
 
 const makeUser = (overrides: Partial<UserEntity> = {}): UserEntity => ({
   id: 'user-1',
