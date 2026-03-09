@@ -1,6 +1,20 @@
-# Postgres data (mounted via docker-compose volume)
-/database/*
-!/database/.gitkeep
+# Dependencies
+node_modules/
+
+# Build output
+/frontend/dist/
+/backend/dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Environment
 .env
@@ -9,4 +23,27 @@
 # Kamal secrets
 .kamal/secrets
 
-/backend/dist/
+# Postgres data (mounted via docker-compose volume)
+/database/*
+!/database/.gitkeep
+
+# Test & coverage
+coverage/
+test-results/
+playwright-report/
+__screenshots__/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.eslintcache
+
+# OS
+.DS_Store
+Thumbs.db
