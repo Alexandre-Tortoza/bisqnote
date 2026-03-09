@@ -12,17 +12,24 @@ const credentialsSchema = {
   type: 'object',
   required: ['username', 'password'],
   properties: {
-    username: { type: 'string', minLength: 1 },
-    password: { type: 'string', minLength: 1 },
+    // 3–50 alphanumeric/underscore/dash characters — prevents trivially short or
+    // unbounded names and reduces username-enumeration surface.
+    username: { type: 'string', minLength: 3, maxLength: 50, pattern: '^[a-zA-Z0-9_-]+$' },
+    // 8–128 characters — enforces a minimum strength while capping to protect
+    // against hash-DoS attacks on the bcrypt layer.
+    password: { type: 'string', minLength: 8, maxLength: 128 },
   },
   additionalProperties: false,
 }
+
+// Per-route rate-limit config used by @fastify/rate-limit
+const authRateLimit = { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }
 
 /** User HTTP routes: register and login. */
 export async function userRoutes(fastify: FastifyInstance, options: UserRoutesOptions) {
   fastify.post<{ Body: { username: string; password: string } }>(
     '/api/users/register',
-    { schema: { body: credentialsSchema } },
+    { schema: { body: credentialsSchema }, ...authRateLimit },
     async (request, reply) => {
       const useCase = new RegisterUserUseCase(options.userRepo)
       try {
@@ -40,7 +47,7 @@ export async function userRoutes(fastify: FastifyInstance, options: UserRoutesOp
 
   fastify.post<{ Body: { username: string; password: string } }>(
     '/api/users/login',
-    { schema: { body: credentialsSchema } },
+    { schema: { body: credentialsSchema }, ...authRateLimit },
     async (request, reply) => {
       const useCase = new AuthenticateUserUseCase(options.userRepo)
       try {

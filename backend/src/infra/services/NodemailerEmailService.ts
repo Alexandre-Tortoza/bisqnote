@@ -37,11 +37,13 @@ export class NodemailerEmailService implements IEmailService {
         `Your board "${payload.boardName}" is ready!`,
         '',
         `Board URL: ${boardUrl}`,
-        `Your token: ${payload.memberToken}`,
         '',
         `Recovery link (valid 30 days): ${goBackUrl}`,
         '',
-        'Keep this email — it is the only way to recover access to your board.',
+        // The member token is NOT included here — it is sensitive and should
+        // never be transmitted in plaintext over email. Users access the board
+        // by redeeming the recovery link, which issues a fresh session token.
+        'Keep this email — use the recovery link above to regain access to your board.',
       ].join('\n'),
     })
   }

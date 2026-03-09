@@ -86,6 +86,36 @@ describe('POST /api/users/register', () => {
     expect(res.statusCode).toBe(409)
     expect(res.json().error).toBe('Username already taken')
   })
+
+  it('returns 400 when username is shorter than 3 characters', async () => {
+    const app = await buildTestApp(userRepo)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/users/register',
+      payload: { username: 'ab', password: 'secret123' },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('returns 400 when username contains invalid characters', async () => {
+    const app = await buildTestApp(userRepo)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/users/register',
+      payload: { username: 'jo@hn!', password: 'secret123' },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('returns 400 when password is shorter than 8 characters', async () => {
+    const app = await buildTestApp(userRepo)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/users/register',
+      payload: { username: 'johndoe', password: 'short' },
+    })
+    expect(res.statusCode).toBe(400)
+  })
 })
 
 describe('POST /api/users/login', () => {
@@ -127,7 +157,9 @@ describe('POST /api/users/login', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/users/login',
-      payload: { username: 'ghost', password: 'wrong' },
+      // Use a password that satisfies the minLength: 8 schema constraint so the
+      // request reaches the authentication logic and returns 401 (not 400).
+      payload: { username: 'ghost', password: 'wrongpassword123' },
     })
     expect(res.statusCode).toBe(401)
     expect(res.json().error).toBe('Invalid username or password')
