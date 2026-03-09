@@ -5,8 +5,17 @@ import type { IEmailService } from '../../../domain/services/IEmailService.js'
 import type { IBoardRepository } from '../../../domain/repositories/IBoardRepository.js'
 import type { IMemberRepository } from '../../../domain/repositories/IMemberRepository.js'
 import type { IGoBackLinkRepository } from '../../../domain/repositories/IGoBackLinkRepository.js'
+import type { IUserRepository } from '../../../domain/repositories/IUserRepository.js'
 import { boardRoutes } from '../../../infra/http/routes/boards.js'
 import { errorHandlerPlugin } from '../../../infra/http/plugins/errorHandler.js'
+
+const makeUser = () => ({
+  id: 'user-1',
+  username: 'johndoe',
+  passwordHash: 'hash',
+  tokenHash: 'tokenhash',
+  createdAt: new Date(),
+})
 
 const makeFakeDb = () => ({
   boardRepo: {
@@ -25,11 +34,13 @@ const makeFakeDb = () => ({
     create: vi.fn().mockResolvedValue({
       id: 'member-1',
       boardId: 'board-1',
+      userId: 'user-1',
       tokenHash: 'hash',
       role: 'owner',
       encryptedContent: '{}',
     }),
     findById: vi.fn().mockResolvedValue(null),
+    findByUserAndBoard: vi.fn().mockResolvedValue(null),
     updateTokenHash: vi.fn().mockResolvedValue(undefined),
   } satisfies IMemberRepository,
   goBackLinkRepo: {
@@ -41,6 +52,12 @@ const makeFakeDb = () => ({
     sendBoardCreated: vi.fn().mockResolvedValue(undefined),
     sendRecovery: vi.fn().mockResolvedValue(undefined),
   } satisfies IEmailService,
+  userRepo: {
+    create: vi.fn().mockResolvedValue(makeUser()),
+    findByUsername: vi.fn().mockResolvedValue(null),
+    findByTokenHash: vi.fn().mockResolvedValue(makeUser()),
+    updateTokenHash: vi.fn().mockResolvedValue(undefined),
+  } satisfies IUserRepository,
 })
 
 async function buildTestApp() {
@@ -59,6 +76,7 @@ async function buildTestApp() {
     boardRepo: fakes.boardRepo,
     memberRepo: fakes.memberRepo,
     goBackLinkRepo: fakes.goBackLinkRepo,
+    userRepo: fakes.userRepo,
   })
 
   return { app, fakes }
@@ -70,7 +88,7 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: { name: 'Test Board' },
+      payload: { name: 'Test Board', userToken: 'valid-token' },
     })
     expect(res.statusCode).toBe(201)
     const body = res.json()
@@ -83,7 +101,7 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: {},
+      payload: { userToken: 'valid-token' },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -93,10 +111,21 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: { name: 'Secret', isPrivate: true },
+      payload: { name: 'Secret', isPrivate: true, userToken: 'valid-token' },
     })
     expect(res.statusCode).toBe(400)
     expect(res.json().error).toBe('Password required for private boards')
+  })
+
+  it('returns 401 when userToken is invalid', async () => {
+    const { app, fakes } = await buildTestApp()
+    vi.mocked(fakes.userRepo.findByTokenHash).mockResolvedValueOnce(null)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/boards',
+      payload: { name: 'Test Board', userToken: 'bad-token' },
+    })
+    expect(res.statusCode).toBe(401)
   })
 
   it('returns 500 with generic message when boardRepo.create throws', async () => {
@@ -108,7 +137,7 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: { name: 'Test Board' },
+      payload: { name: 'Test Board', userToken: 'valid-token' },
     })
     expect(res.statusCode).toBe(500)
     const body = res.json()

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { api } from '@/services/api'
 import { ApiError } from '@/services/ApiError'
 import { useSessionStore } from '@/stores/session'
+import { useUserStore } from '@/stores/user'
 
 export interface CreateBoardPayload {
   name: string
@@ -23,6 +24,7 @@ export function useCreateBoard() {
   const error = ref<string | null>(null)
   const router = useRouter()
   const session = useSessionStore()
+  const userStore = useUserStore()
   const { t } = useI18n()
 
   async function createBoard(payload: CreateBoardPayload): Promise<void> {
@@ -30,7 +32,10 @@ export function useCreateBoard() {
     error.value = null
 
     try {
-      const result = await api.post<CreateBoardResponse>('/api/boards', payload)
+      const result = await api.post<CreateBoardResponse>('/api/boards', {
+        ...payload,
+        userToken: userStore.user?.userToken,
+      })
       session.setSession(result)
       await router.push(`/board/${result.boardId}`)
     } catch (err) {

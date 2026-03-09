@@ -5,9 +5,11 @@ import { emailPlugin } from './http/plugins/email.js'
 import { errorHandlerPlugin } from './http/plugins/errorHandler.js'
 import { boardRoutes } from './http/routes/boards.js'
 import { goBackLinkRoutes } from './http/routes/goBackLinks.js'
+import { userRoutes } from './http/routes/users.js'
 import { DrizzleBoardRepository } from './repositories/DrizzleBoardRepository.js'
 import { DrizzleMemberRepository } from './repositories/DrizzleMemberRepository.js'
 import { DrizzleGoBackLinkRepository } from './repositories/DrizzleGoBackLinkRepository.js'
+import { DrizzleUserRepository } from './repositories/DrizzleUserRepository.js'
 
 /**
  * Creates and configures the Fastify application instance.
@@ -21,10 +23,15 @@ export async function buildApp() {
   await app.register(dbPlugin)
   await app.register(emailPlugin)
 
+  const userRepo = new DrizzleUserRepository(app.db)
+
+  await app.register(userRoutes, { userRepo })
+
   await app.register(boardRoutes, {
     boardRepo: new DrizzleBoardRepository(app.db),
     memberRepo: new DrizzleMemberRepository(app.db),
     goBackLinkRepo: new DrizzleGoBackLinkRepository(app.db),
+    userRepo,
   })
 
   await app.register(goBackLinkRoutes, {

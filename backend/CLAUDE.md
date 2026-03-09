@@ -4,18 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Stack
 
-| Tool | Role |
-|---|---|
-| **Node.js** | Runtime |
-| **TypeScript 5** (`strict: true`) | Language |
-| **Fastify 5** | HTTP framework |
-| **Drizzle ORM** | Query builder + schema manager |
-| **PostgreSQL** | Database (via `postgres-js`) |
-| **Nodemailer** | Transactional email |
-| **bcryptjs** | Password / token hashing |
-| **Vitest** | Test runner |
-| **tsx** | Dev server (no compilation step) |
-| **pnpm** | Package manager |
+| Tool                              | Role                             |
+| --------------------------------- | -------------------------------- |
+| **Node.js**                       | Runtime                          |
+| **TypeScript 5** (`strict: true`) | Language                         |
+| **Fastify 5**                     | HTTP framework                   |
+| **Drizzle ORM**                   | Query builder + schema manager   |
+| **PostgreSQL**                    | Database (via `postgres-js`)     |
+| **Nodemailer**                    | Transactional email              |
+| **bcryptjs**                      | Password / token hashing         |
+| **Vitest**                        | Test runner                      |
+| **tsx**                           | Dev server (no compilation step) |
+| **pnpm**                          | Package manager                  |
 
 ## Commands
 

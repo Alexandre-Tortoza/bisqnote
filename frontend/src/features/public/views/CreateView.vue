@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppButton from '@/components/ui/AppButton.vue'
 import WindowComponent from '@/components/ui/WindowComponent.vue'
+import UserAuthStep from '@/features/public/components/UserAuthStep.vue'
 import { useCreateBoard } from '../composables/useCreateBoard'
+import { useUserStore } from '@/stores/user'
 
 const { t } = useI18n()
+const userStore = useUserStore()
 
 const name = ref('')
 const isPrivate = ref(false)
@@ -16,6 +19,8 @@ const submitted = ref(false)
 const nameError = ref('')
 
 const { createBoard, loading, error } = useCreateBoard()
+
+const showAuthStep = computed(() => !userStore.hasUser())
 
 function validate(): boolean {
   nameError.value = name.value.trim() ? '' : t('create.errorName')
@@ -41,7 +46,15 @@ async function handleSubmit() {
 <template>
   <div class="min-h-[calc(100vh-3.5rem)] bg-nb-bg flex items-center justify-center px-6 py-16">
     <div class="w-full max-w-lg">
-      <WindowComponent :title="t('create.pageTitle')">
+
+      <!-- User auth step (shown when no user session) -->
+      <WindowComponent v-if="showAuthStep" :title="t('auth.title')">
+        <p class="font-mono text-xs text-nb-muted mb-4">{{ t('auth.desc') }}</p>
+        <UserAuthStep @authenticated="() => {}" />
+      </WindowComponent>
+
+      <!-- Board creation form (shown once user is authenticated) -->
+      <WindowComponent v-else :title="t('create.pageTitle')">
       <form
         class="flex flex-col gap-6"
         novalidate

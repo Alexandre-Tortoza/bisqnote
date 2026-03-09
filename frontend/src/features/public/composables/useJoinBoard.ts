@@ -32,12 +32,12 @@ export function useJoinBoard() {
     }
   }
 
-  async function joinBoard(boardId: string, password?: string): Promise<void> {
+  async function joinBoard(boardId: string, password?: string, userToken?: string): Promise<void> {
     loading.value = true
     error.value = null
 
     try {
-      const result = await api.post<JoinBoardResponse>('/api/boards/join', { boardId, password })
+      const result = await api.post<JoinBoardResponse>('/api/boards/join', { boardId, password, userToken })
       session.setSession(result)
       await router.push(`/board/${result.boardId}`)
     } catch (err) {
@@ -46,6 +46,8 @@ export function useJoinBoard() {
           error.value = t('errors.joinBoard.notFound')
         } else if (err.status === 403) {
           error.value = t('errors.joinBoard.wrongPassword')
+        } else if (err.status === 401) {
+          error.value = t('errors.joinBoard.invalidUserToken')
         } else if (err.status >= 500) {
           error.value = t('errors.serverError')
         } else {

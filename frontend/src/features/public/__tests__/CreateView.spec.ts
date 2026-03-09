@@ -13,6 +13,10 @@ vi.mock('../composables/useCreateBoard', () => ({
   }),
 }))
 
+vi.mock('@/stores/user', () => ({
+  useUserStore: () => ({ user: { userToken: 'test-token' }, hasUser: () => true }),
+}))
+
 const mountCreate = () =>
   mount(CreateView, {
     global: { stubs: { RouterLink: RouterLinkStub }, plugins: [createTestI18n()] },

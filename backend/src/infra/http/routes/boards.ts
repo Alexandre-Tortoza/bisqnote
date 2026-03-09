@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { IBoardRepository } from '../../../domain/repositories/IBoardRepository.js'
 import type { IMemberRepository } from '../../../domain/repositories/IMemberRepository.js'
 import type { IGoBackLinkRepository } from '../../../domain/repositories/IGoBackLinkRepository.js'
+import type { IUserRepository } from '../../../domain/repositories/IUserRepository.js'
 import { CreateBoardUseCase } from '../../../domain/use-cases/CreateBoard.js'
 import { RecoverBoardsUseCase } from '../../../domain/use-cases/RecoverBoards.js'
 import { GetBoardMetaUseCase } from '../../../domain/use-cases/GetBoardMeta.js'
@@ -12,16 +13,18 @@ interface BoardRoutesOptions {
   boardRepo: IBoardRepository
   memberRepo: IMemberRepository
   goBackLinkRepo: IGoBackLinkRepository
+  userRepo: IUserRepository
 }
 
 const createBoardSchema = {
   type: 'object',
-  required: ['name'],
+  required: ['name', 'userToken'],
   properties: {
     name:       { type: 'string', minLength: 1 },
     isPrivate:  { type: 'boolean' },
     password:   { type: 'string' },
     ownerEmail: { type: 'string', format: 'email' },
+    userToken:  { type: 'string', minLength: 1 },
   },
   additionalProperties: false,
 }
@@ -37,10 +40,11 @@ const recoverSchema = {
 
 const joinBoardSchema = {
   type: 'object',
-  required: ['boardId'],
+  required: ['boardId', 'userToken'],
   properties: {
-    boardId:  { type: 'string', minLength: 1 },
-    password: { type: 'string' },
+    boardId:   { type: 'string', minLength: 1 },
+    password:  { type: 'string' },
+    userToken: { type: 'string', minLength: 1 },
   },
   additionalProperties: false,
 }
@@ -48,19 +52,28 @@ const joinBoardSchema = {
 /** Board HTTP routes: create, recover, get meta, and join. */
 export async function boardRoutes(fastify: FastifyInstance, options: BoardRoutesOptions) {
   fastify.post<{
-    Body: { name: string; isPrivate?: boolean; password?: string; ownerEmail?: string }
+    Body: { name: string; isPrivate?: boolean; password?: string; ownerEmail?: string; userToken: string }
   }>('/api/boards', { schema: { body: createBoardSchema } }, async (request, reply) => {
-    const { name, isPrivate = false, password, ownerEmail } = request.body
+    const { name, isPrivate = false, password, ownerEmail, userToken } = request.body
 
     const useCase = new CreateBoardUseCase(
       options.boardRepo,
       options.memberRepo,
       options.goBackLinkRepo,
       fastify.emailService,
+      options.userRepo,
     )
 
-    const result = await useCase.execute({ name, isPrivate, password, ownerEmail })
-    return reply.status(201).send(result)
+    try {
+      const result = await useCase.execute({ name, isPrivate, password, ownerEmail, userToken })
+      return reply.status(201).send(result)
+    } catch (err) {
+      if (err instanceof AppError) {
+        if (err.code === 'INVALID_USER_TOKEN') return reply.status(401).send({ error: err.message })
+        return reply.status(400).send({ error: err.message })
+      }
+      throw err
+    }
   })
 
   fastify.post<{ Body: { email: string } }>(
@@ -89,11 +102,11 @@ export async function boardRoutes(fastify: FastifyInstance, options: BoardRoutes
     },
   )
 
-  fastify.post<{ Body: { boardId: string; password?: string } }>(
+  fastify.post<{ Body: { boardId: string; password?: string; userToken: string } }>(
     '/api/boards/join',
     { schema: { body: joinBoardSchema } },
     async (request, reply) => {
-      const useCase = new JoinBoardUseCase(options.boardRepo, options.memberRepo)
+      const useCase = new JoinBoardUseCase(options.boardRepo, options.memberRepo, options.userRepo)
 
       try {
         const result = await useCase.execute(request.body)
@@ -102,6 +115,7 @@ export async function boardRoutes(fastify: FastifyInstance, options: BoardRoutes
         if (err instanceof AppError) {
           if (err.code === 'BOARD_NOT_FOUND') return reply.status(404).send({ error: err.message })
           if (err.code === 'INVALID_PASSWORD') return reply.status(403).send({ error: err.message })
+          if (err.code === 'INVALID_USER_TOKEN') return reply.status(401).send({ error: err.message })
           return reply.status(400).send({ error: err.message })
         }
         throw err

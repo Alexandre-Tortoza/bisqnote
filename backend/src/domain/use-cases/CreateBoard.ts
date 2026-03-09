@@ -1,15 +1,18 @@
+import { createHash } from 'node:crypto'
 import { hash } from 'bcryptjs'
 import { AppError } from '../errors/AppError.js'
 import type { IBoardRepository } from '../repositories/IBoardRepository.js'
 import type { IMemberRepository } from '../repositories/IMemberRepository.js'
 import type { IGoBackLinkRepository } from '../repositories/IGoBackLinkRepository.js'
 import type { IEmailService } from '../services/IEmailService.js'
+import type { IUserRepository } from '../repositories/IUserRepository.js'
 
 export interface CreateBoardInput {
   name: string
   isPrivate: boolean
   password?: string
   ownerEmail?: string
+  userToken: string
 }
 
 export interface CreateBoardOutput {
@@ -25,14 +28,19 @@ export class CreateBoardUseCase {
     private readonly memberRepo: IMemberRepository,
     private readonly goBackLinkRepo: IGoBackLinkRepository,
     private readonly emailService: IEmailService,
+    private readonly userRepo: IUserRepository,
   ) {}
 
   async execute(input: CreateBoardInput): Promise<CreateBoardOutput> {
-    const { name, isPrivate, password, ownerEmail } = input
+    const { name, isPrivate, password, ownerEmail, userToken } = input
 
     if (isPrivate && !password) {
       throw new AppError('INVALID_INPUT', 'Password required for private boards')
     }
+
+    const tokenHash = createHash('sha256').update(userToken).digest('hex')
+    const user = await this.userRepo.findByTokenHash(tokenHash)
+    if (!user) throw new AppError('INVALID_USER_TOKEN', 'Invalid or expired user token')
 
     const passwordHash = isPrivate && password ? await hash(password, 10) : null
     const encryptedContent = JSON.stringify({ name })
@@ -45,11 +53,12 @@ export class CreateBoardUseCase {
     })
 
     const memberToken = crypto.randomUUID()
-    const tokenHash = await hash(memberToken, 10)
+    const memberTokenHash = await hash(memberToken, 10)
 
     const member = await this.memberRepo.create({
       boardId: board.id,
-      tokenHash,
+      userId: user.id,
+      tokenHash: memberTokenHash,
       role: 'owner',
       encryptedContent: JSON.stringify({}),
     })

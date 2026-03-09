@@ -1,14 +1,17 @@
 import { pgTable, pgEnum, uuid, text, timestamp } from 'drizzle-orm/pg-core'
 import { boards } from './boards'
+import { users } from './users'
 
 export const memberRoleEnum = pgEnum('member_role', ['owner', 'member'])
 
 /**
- * A member identity within a board. Token-based auth — no global user accounts.
+ * A member identity within a board, linked to a global user account.
+ * Each user has at most one member record per board (unique user_id + board_id).
  */
 export const boardMembers = pgTable('board_members', {
   id:                uuid('id').primaryKey().defaultRandom(),
   board_id:          uuid('board_id').notNull().references(() => boards.id, { onDelete: 'cascade' }),
+  user_id:           uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
   token_hash:        text('token_hash').notNull(),
   role:              memberRoleEnum('role').notNull().default('member'),
   encrypted_content: text('encrypted_content').notNull(), // JSON: {displayName}

@@ -15,6 +15,13 @@
       "when": 1773018997000,
       "tag": "0001_add_owner_email",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773022681423,
+      "tag": "0002_previous_cardiac",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,10 @@ vi.mock('@/stores/session', () => ({
   useSessionStore: () => ({ setSession: mockSetSession }),
 }))
 
+vi.mock('@/stores/user', () => ({
+  useUserStore: () => ({ user: { userToken: 'test-user-token' }, hasUser: () => true }),
+}))
+
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
@@ -30,7 +34,7 @@ describe('useCreateBoard', () => {
     const { api } = await import('@/services/api')
     const { createBoard } = useCreateBoard()
     await createBoard({ name: 'My Board', isPrivate: false })
-    expect(api.post).toHaveBeenCalledWith('/api/boards', { name: 'My Board', isPrivate: false })
+    expect(api.post).toHaveBeenCalledWith('/api/boards', expect.objectContaining({ name: 'My Board', isPrivate: false }))
   })
 
   it('calls setSession with returned data', async () => {

@@ -1,6 +1,7 @@
 // Tables
 export { boards } from './boards'
 export { boardMembers, goBackLinks } from './members'
+export { users } from './users'
 export { kanbanColumns, kanbanTasks } from './kanban'
 export { calendarEvents } from './calendar'
 export { chatMessages } from './chat'
@@ -20,6 +21,7 @@ export { activityActionEnum, activityTargetTypeEnum } from './activity'
 // Types
 export type { Board, NewBoard } from './boards'
 export type { BoardMember, NewBoardMember, GoBackLink, NewGoBackLink } from './members'
+export type { User, NewUser } from './users'
 export type { KanbanColumn, NewKanbanColumn, KanbanTask, NewKanbanTask } from './kanban'
 export type { CalendarEvent, NewCalendarEvent } from './calendar'
 export type { ChatMessage, NewChatMessage } from './chat'
