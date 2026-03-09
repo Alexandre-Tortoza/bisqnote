@@ -4,18 +4,20 @@ import { useI18n } from 'vue-i18n'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import LocaleToggle from '@/components/ui/LocaleToggle.vue'
 import { useUserStore } from '@/stores/user'
+import { BsPerson } from 'vue-icons-plus/bs'
+import { TbHome, TbMail, TbLayoutKanban, TbCalendar, TbMessages, TbSettings } from 'vue-icons-plus/tb'
 
 const route = useRoute()
 const { t } = useI18n()
 const userStore = useUserStore()
 
 const navItems = [
-  { name: 'board-home', key: 'home', icon: '⌂' },
-  { name: 'board-invite', key: 'invite', icon: '✉' },
-  { name: 'board-kanban', key: 'kanban', icon: '▦' },
-  { name: 'board-calendar', key: 'calendar', icon: '▦' },
-  { name: 'board-chat', key: 'chat', icon: '◈' },
-  { name: 'board-config', key: 'config', icon: '⚙' },
+  { name: 'board-home', key: 'home', icon: TbHome },
+  { name: 'board-invite', key: 'invite', icon: TbMail },
+  { name: 'board-kanban', key: 'kanban', icon: TbLayoutKanban },
+  { name: 'board-calendar', key: 'calendar', icon: TbCalendar },
+  { name: 'board-chat', key: 'chat', icon: TbMessages },
+  { name: 'board-config', key: 'config', icon: TbSettings },
 ]
 </script>
 
@@ -59,7 +61,7 @@ const navItems = [
                 : 'border-transparent text-nb-muted hover:text-nb-text hover:border-nb-border hover:bg-nb-bg',
             ]"
           >
-            <span class="text-base leading-none">{{ item.icon }}</span>
+            <component :is="item.icon" :size="16" class="shrink-0" />
             {{ t(`board.nav.${item.key}`) }}
           </RouterLink>
         </nav>
@@ -67,7 +69,7 @@ const navItems = [
         <!-- User info -->
         <div class="border-t-2 border-nb-border px-3 py-3 flex items-center gap-2 shrink-0">
           <div class="w-7 h-7 border-2 border-nb-border bg-nb-bg flex items-center justify-center shrink-0">
-            <span class="font-mono text-xs font-bold leading-none">◉</span>
+            <BsPerson :size="14" />
           </div>
           <span class="font-mono text-xs font-bold text-nb-text truncate">
             {{ userStore.user?.username ?? '—' }}
