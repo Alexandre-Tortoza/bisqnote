@@ -38,6 +38,9 @@ importers:
       vue-i18n:
         specifier: ^11.3.0
         version: 11.3.0(vue@3.6.0-beta.7(typescript@5.9.3))
+      vue-icons-plus:
+        specifier: ^0.1.9
+        version: 0.1.9(vue@3.6.0-beta.7(typescript@5.9.3))
       vue-router:
         specifier: ^5.0.3
         version: 5.0.3(pinia@3.0.4(typescript@5.9.3)(vue@3.6.0-beta.7(typescript@5.9.3)))(vue@3.6.0-beta.7(typescript@5.9.3))
@@ -2660,6 +2663,11 @@ packages:
     peerDependencies:
       vue: ^3.0.0
 
+  vue-icons-plus@0.1.9:
+    resolution: {integrity: sha512-OGn0MXLqXCnDlpkxqQj2HDc6+XEQQ/8itS8hJCzehfqMBhX6EkRGKN0g6Hk1ObnotIOJLLihWKWqifYwvxyENA==}
+    peerDependencies:
+      vue: '>=2.7.0'
+
   vue-router@5.0.3:
     resolution: {integrity: sha512-nG1c7aAFac7NYj8Hluo68WyWfc41xkEjaR0ViLHCa3oDvTQ/nIuLJlXJX1NUPw/DXzx/8+OKMng045HHQKQKWw==}
     peerDependencies:
@@ -5085,6 +5093,10 @@ snapshots:
       '@intlify/devtools-types': 11.3.0
       '@intlify/shared': 11.3.0
       '@vue/devtools-api': 6.6.4
+      vue: 3.6.0-beta.7(typescript@5.9.3)
+
+  vue-icons-plus@0.1.9(vue@3.6.0-beta.7(typescript@5.9.3)):
+    dependencies:
       vue: 3.6.0-beta.7(typescript@5.9.3)
 
   vue-router@5.0.3(pinia@3.0.4(typescript@5.9.3)(vue@3.6.0-beta.7(typescript@5.9.3)))(vue@3.6.0-beta.7(typescript@5.9.3)):
