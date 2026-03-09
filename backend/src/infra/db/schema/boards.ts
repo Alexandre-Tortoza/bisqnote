@@ -8,6 +8,7 @@ export const boards = pgTable('boards', {
   id:                uuid('id').primaryKey().defaultRandom(),
   password_hash:     text('password_hash'),
   is_private:        boolean('is_private').notNull().default(false),
+  owner_email:       text('owner_email'),
   encrypted_content: text('encrypted_content').notNull(), // JSON: {name}
   created_at:        timestamp('created_at').notNull().defaultNow(),
   updated_at:        timestamp('updated_at').notNull().defaultNow(),
