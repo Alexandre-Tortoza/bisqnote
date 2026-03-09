@@ -1,8 +1,17 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import { RouterLinkStub } from '@vue/test-utils'
 import { createTestI18n } from '@/test-utils/i18n'
 import CreateView from '../views/CreateView.vue'
+
+vi.mock('../composables/useCreateBoard', () => ({
+  useCreateBoard: () => ({
+    createBoard: vi.fn().mockResolvedValue(undefined),
+    loading: ref(false),
+    error: ref<string | null>(null),
+  }),
+}))
 
 const mountCreate = () =>
   mount(CreateView, {

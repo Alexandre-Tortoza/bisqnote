@@ -3,15 +3,19 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppButton from '@/components/ui/AppButton.vue'
 import WindowComponent from '@/components/ui/WindowComponent.vue'
+import { useCreateBoard } from '../composables/useCreateBoard'
 
 const { t } = useI18n()
 
 const name = ref('')
 const isPrivate = ref(false)
 const password = ref('')
+const ownerEmail = ref('')
 const submitted = ref(false)
 
 const nameError = ref('')
+
+const { createBoard, loading, error } = useCreateBoard()
 
 function validate(): boolean {
   nameError.value = name.value.trim() ? '' : t('create.errorName')
@@ -22,10 +26,15 @@ function onNameInput() {
   if (submitted.value) validate()
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   submitted.value = true
   if (!validate()) return
-  // TODO: call API to create board
+  await createBoard({
+    name: name.value.trim(),
+    isPrivate: isPrivate.value,
+    password: isPrivate.value ? password.value : undefined,
+    ownerEmail: ownerEmail.value.trim() || undefined,
+  })
 }
 </script>
 
@@ -97,12 +106,43 @@ function handleSubmit() {
           />
         </div>
 
+        <!-- Owner email (optional) -->
+        <div class="flex flex-col gap-1">
+          <label
+            for="create-owner-email"
+            class="font-mono text-xs font-bold uppercase tracking-wider text-nb-text"
+          >
+            {{ t('create.labelOwnerEmail') }}
+          </label>
+          <input
+            id="create-owner-email"
+            v-model="ownerEmail"
+            name="ownerEmail"
+            type="email"
+            :placeholder="t('create.placeholderOwnerEmail')"
+            autocomplete="email"
+            class="bg-nb-bg border-2 border-nb-border text-nb-text font-mono text-sm px-3 py-2 outline-none shadow-[var(--nb-shadow-sm)] focus:shadow-[var(--nb-shadow)] transition-all duration-100 placeholder:text-nb-muted w-full"
+          />
+          <span class="font-mono text-xs text-nb-muted">{{ t('create.hintOwnerEmail') }}</span>
+        </div>
+
+        <!-- API error -->
+        <span
+          v-if="error"
+          data-testid="api-error"
+          class="font-mono text-xs text-nb-accent font-bold"
+        >
+          {{ error }}
+        </span>
+
         <!-- Actions -->
         <div class="flex items-center justify-between pt-2 border-t-2 border-nb-border">
           <RouterLink to="/" class="font-mono text-xs text-nb-muted hover:text-nb-text transition-colors">
             {{ t('create.back') }}
           </RouterLink>
-          <AppButton type="submit" variant="primary" size="md">{{ t('create.submit') }}</AppButton>
+          <AppButton type="submit" variant="primary" size="md" :disabled="loading">
+            {{ loading ? '...' : t('create.submit') }}
+          </AppButton>
         </div>
       </form>
       </WindowComponent>
