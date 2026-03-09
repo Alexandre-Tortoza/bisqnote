@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useSessionStore } from '@/stores/session'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -62,8 +63,9 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   if (to.meta.requiresAuth) {
-    // TODO: check auth session when implemented
-    // return { name: 'home' }
+    const session = useSessionStore()
+    const boardId = to.params['id'] as string
+    if (!session.hasSession(boardId)) return { name: 'home' }
   }
 })
 
