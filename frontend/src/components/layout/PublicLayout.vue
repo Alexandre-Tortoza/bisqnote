@@ -21,27 +21,8 @@ const { t } = useI18n();
 
         <!-- Nav + toggles -->
         <div class="flex items-center gap-1">
-          <nav class="flex items-center">
-            <RouterLink
-              v-for="{ to, label } in [
-                { to: '/', label: t('nav.home') },
-                { to: '/create', label: t('nav.create') },
-                { to: '/join', label: t('nav.join') },
-              ]"
-              :key="to"
-              :to="to"
-              class="font-mono text-xs font-bold px-3 py-1.5 text-nb-muted hover:text-nb-text hover:bg-nb-border hover:text-nb-bg border-2 border-transparent hover:border-nb-border transition-all"
-              active-class="text-nb-bg bg-nb-border border-nb-border"
-              exact-active-class="text-nb-bg bg-nb-border border-nb-border"
-            >
-              {{ label }}
-            </RouterLink>
-          </nav>
-
-          <div class="ml-3 border-l-2 border-nb-border pl-3 flex items-center gap-1">
-            <LocaleToggle />
-            <ThemeToggle />
-          </div>
+          <LocaleToggle />
+          <ThemeToggle />
         </div>
       </div>
     </header>
