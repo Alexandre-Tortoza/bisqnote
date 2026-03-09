@@ -8,6 +8,6 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_username_unique" UNIQUE("username")
 );
 --> statement-breakpoint
-ALTER TABLE "boards" ADD COLUMN "owner_email" text;--> statement-breakpoint
-ALTER TABLE "board_members" ADD COLUMN "user_id" uuid;--> statement-breakpoint
+ALTER TABLE "board_members" ADD COLUMN "user_id" uuid;
+--> statement-breakpoint
 ALTER TABLE "board_members" ADD CONSTRAINT "board_members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
