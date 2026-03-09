@@ -6,7 +6,6 @@ import type { BoardEntity } from '../../../domain/entities/Board.js'
 import type { BoardMemberEntity } from '../../../domain/entities/BoardMember.js'
 import type { UserEntity } from '../../../domain/entities/User.js'
 import { JoinBoardUseCase } from '../../../domain/use-cases/JoinBoard.js'
-import { AppError } from '../../../domain/errors/AppError.js'
 
 const makeBoard = (overrides: Partial<BoardEntity> = {}): BoardEntity => ({
   id: 'board-1',
