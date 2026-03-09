@@ -22,6 +22,7 @@ describe('RecoverBoardsUseCase', () => {
   beforeEach(() => {
     boardRepo = {
       create: vi.fn(),
+      findById: vi.fn().mockResolvedValue(null),
       findByOwnerEmail: vi.fn().mockResolvedValue([makeBoard('b1'), makeBoard('b2')]),
     }
     goBackLinkRepo = {

@@ -6,6 +6,7 @@ import type { IBoardRepository } from '../../../domain/repositories/IBoardReposi
 import type { IMemberRepository } from '../../../domain/repositories/IMemberRepository.js'
 import type { IGoBackLinkRepository } from '../../../domain/repositories/IGoBackLinkRepository.js'
 import { boardRoutes } from '../../../infra/http/routes/boards.js'
+import { errorHandlerPlugin } from '../../../infra/http/plugins/errorHandler.js'
 
 const makeFakeDb = () => ({
   boardRepo: {
@@ -17,6 +18,7 @@ const makeFakeDb = () => ({
       encryptedContent: '{"name":"Test"}',
       createdAt: new Date(),
     }),
+    findById: vi.fn().mockResolvedValue(null),
     findByOwnerEmail: vi.fn().mockResolvedValue([]),
   } satisfies IBoardRepository,
   memberRepo: {
@@ -43,7 +45,9 @@ const makeFakeDb = () => ({
 
 async function buildTestApp() {
   const fakes = makeFakeDb()
-  const app = Fastify()
+  const app = Fastify({ logger: false })
+
+  await app.register(errorHandlerPlugin)
 
   const dbMockPlugin = fp(async (fastify) => {
     fastify.decorate('db', {} as never)
@@ -92,6 +96,25 @@ describe('POST /api/boards', () => {
       payload: { name: 'Secret', isPrivate: true },
     })
     expect(res.statusCode).toBe(400)
+    expect(res.json().error).toBe('Password required for private boards')
+  })
+
+  it('returns 500 with generic message when boardRepo.create throws', async () => {
+    const { app, fakes } = await buildTestApp()
+    fakes.boardRepo.create.mockRejectedValueOnce(
+      new Error('SELECT * FROM boards WHERE id = $1 -- raw query detail'),
+    )
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/boards',
+      payload: { name: 'Test Board' },
+    })
+    expect(res.statusCode).toBe(500)
+    const body = res.json()
+    expect(body.error).toBe('Internal server error')
+    expect(body.error).not.toContain('query')
+    expect(body.error).not.toContain('SELECT')
   })
 })
 

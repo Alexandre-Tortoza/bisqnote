@@ -1,6 +1,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { api } from '@/services/api'
+import { ApiError } from '@/services/ApiError'
 import { useSessionStore } from '@/stores/session'
 
 export interface CreateBoardPayload {
@@ -21,6 +23,7 @@ export function useCreateBoard() {
   const error = ref<string | null>(null)
   const router = useRouter()
   const session = useSessionStore()
+  const { t } = useI18n()
 
   async function createBoard(payload: CreateBoardPayload): Promise<void> {
     loading.value = true
@@ -31,7 +34,11 @@ export function useCreateBoard() {
       session.setSession(result)
       await router.push(`/board/${result.boardId}`)
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to create board'
+      if (err instanceof ApiError) {
+        error.value = err.status >= 500 ? t('errors.serverError') : err.message
+      } else {
+        error.value = t('errors.createBoard.unknown')
+      }
     } finally {
       loading.value = false
     }

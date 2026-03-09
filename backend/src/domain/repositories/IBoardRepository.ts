@@ -9,5 +9,7 @@ export interface IBoardRepository {
     encryptedContent: string
   }): Promise<BoardEntity>
 
+  findById(id: string): Promise<BoardEntity | null>
+
   findByOwnerEmail(email: string): Promise<BoardEntity[]>
 }

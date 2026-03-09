@@ -62,8 +62,31 @@ export default {
     maximize: "Maximize",
     close: "Close",
   },
+  errors: {
+    serverError: 'Something went wrong. Please try again.',
+    createBoard: { unknown: 'Failed to create board. Please try again.' },
+    joinBoard: {
+      notFound: '✕ Board not found. Check the ID and try again.',
+      wrongPassword: '✕ Wrong password.',
+      unknown: 'Failed to join board. Please try again.',
+    },
+  },
+  enter: {
+    title: 'ENTER BOARD',
+    titleNotFound: 'BOARD NOT FOUND',
+    titleError: 'ERROR',
+    loading: 'Connecting...',
+    boardLabel: 'Board: ',
+    labelPassword: 'Password',
+    placeholderPassword: 'Board password',
+    errorPassword: '✕ Password is required',
+    back: '← Back',
+    submit: 'ENTER →',
+    submitting: 'Verifying...',
+    descNotFound: 'This board does not exist or the link is invalid.',
+    backHome: 'Back to home',
+  },
   board: {
-    title: "Board #{id}",
     nav: {
       home: "HOME",
       invite: "INVITE",

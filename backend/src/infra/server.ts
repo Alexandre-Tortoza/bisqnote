@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import { dbPlugin } from './http/plugins/db.js'
 import { emailPlugin } from './http/plugins/email.js'
+import { errorHandlerPlugin } from './http/plugins/errorHandler.js'
 import { boardRoutes } from './http/routes/boards.js'
 import { goBackLinkRoutes } from './http/routes/goBackLinks.js'
 import { DrizzleBoardRepository } from './repositories/DrizzleBoardRepository.js'
@@ -15,6 +16,7 @@ import { DrizzleGoBackLinkRepository } from './repositories/DrizzleGoBackLinkRep
 export async function buildApp() {
   const app = Fastify({ logger: true })
 
+  await app.register(errorHandlerPlugin)
   await app.register(cors, { origin: process.env['CORS_ORIGIN'] ?? 'http://localhost:5173' })
   await app.register(dbPlugin)
   await app.register(emailPlugin)

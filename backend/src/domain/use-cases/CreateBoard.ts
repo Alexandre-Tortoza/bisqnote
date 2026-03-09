@@ -1,4 +1,5 @@
 import { hash } from 'bcryptjs'
+import { AppError } from '../errors/AppError.js'
 import type { IBoardRepository } from '../repositories/IBoardRepository.js'
 import type { IMemberRepository } from '../repositories/IMemberRepository.js'
 import type { IGoBackLinkRepository } from '../repositories/IGoBackLinkRepository.js'
@@ -30,7 +31,7 @@ export class CreateBoardUseCase {
     const { name, isPrivate, password, ownerEmail } = input
 
     if (isPrivate && !password) {
-      throw new Error('InvalidInputError: password required for private boards')
+      throw new AppError('INVALID_INPUT', 'Password required for private boards')
     }
 
     const passwordHash = isPrivate && password ? await hash(password, 10) : null

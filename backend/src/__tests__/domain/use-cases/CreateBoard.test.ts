@@ -7,6 +7,7 @@ import type { BoardEntity } from '../../../domain/entities/Board.js'
 import type { BoardMemberEntity } from '../../../domain/entities/BoardMember.js'
 import type { GoBackLinkEntity } from '../../../domain/entities/GoBackLink.js'
 import { CreateBoardUseCase } from '../../../domain/use-cases/CreateBoard.js'
+import { AppError } from '../../../domain/errors/AppError.js'
 
 const makeBoard = (overrides: Partial<BoardEntity> = {}): BoardEntity => ({
   id: 'board-1',
@@ -46,6 +47,7 @@ describe('CreateBoardUseCase', () => {
   beforeEach(() => {
     boardRepo = {
       create: vi.fn().mockResolvedValue(makeBoard()),
+      findById: vi.fn().mockResolvedValue(null),
       findByOwnerEmail: vi.fn().mockResolvedValue([]),
     }
     memberRepo = {
@@ -86,9 +88,10 @@ describe('CreateBoardUseCase', () => {
     expect(call.passwordHash).not.toBeNull()
   })
 
-  it('throws InvalidInputError when isPrivate=true but no password', async () => {
+  it('throws AppError when isPrivate=true but no password', async () => {
     const useCase = new CreateBoardUseCase(boardRepo, memberRepo, goBackLinkRepo, emailService)
-    await expect(useCase.execute({ name: 'Board', isPrivate: true })).rejects.toThrow('InvalidInputError')
+    await expect(useCase.execute({ name: 'Board', isPrivate: true })).rejects.toThrow(AppError)
+    await expect(useCase.execute({ name: 'Board', isPrivate: true })).rejects.toThrow('Password required for private boards')
   })
 
   it('does not create goBackLink or send email when ownerEmail not provided', async () => {

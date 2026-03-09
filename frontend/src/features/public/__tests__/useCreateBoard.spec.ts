@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useCreateBoard } from '../composables/useCreateBoard'
+import { ApiError } from '@/services/ApiError'
 
 vi.mock('@/services/api', () => ({
   api: {
     post: vi.fn().mockResolvedValue({ boardId: 'board-1', memberToken: 'tok', role: 'owner' }),
   },
 }))
+
+vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
 
 const mockSetSession = vi.fn()
 const mockPush = vi.fn()
@@ -55,12 +58,30 @@ describe('useCreateBoard', () => {
     expect(loading.value).toBe(false)
   })
 
-  it('sets error on failure', async () => {
+  it('shows i18n serverError key on 500', async () => {
     const { api } = await import('@/services/api')
-    vi.mocked(api.post).mockRejectedValueOnce(new Error('Server error'))
+    vi.mocked(api.post).mockRejectedValueOnce(new ApiError(500, 'Internal server error'))
 
     const { createBoard, error } = useCreateBoard()
     await createBoard({ name: 'Board', isPrivate: false })
-    expect(error.value).toBeTruthy()
+    expect(error.value).toBe('errors.serverError')
+  })
+
+  it('shows backend message on 400', async () => {
+    const { api } = await import('@/services/api')
+    vi.mocked(api.post).mockRejectedValueOnce(new ApiError(400, 'Password required for private boards'))
+
+    const { createBoard, error } = useCreateBoard()
+    await createBoard({ name: 'Board', isPrivate: false })
+    expect(error.value).toBe('Password required for private boards')
+  })
+
+  it('shows i18n unknown key for non-ApiError', async () => {
+    const { api } = await import('@/services/api')
+    vi.mocked(api.post).mockRejectedValueOnce(new Error('network failure'))
+
+    const { createBoard, error } = useCreateBoard()
+    await createBoard({ name: 'Board', isPrivate: false })
+    expect(error.value).toBe('errors.createBoard.unknown')
   })
 })

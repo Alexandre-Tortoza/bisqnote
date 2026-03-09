@@ -62,8 +62,31 @@ export default {
     maximize: "Maximizar",
     close: "Fechar",
   },
+  errors: {
+    serverError: 'Algo deu errado. Tente novamente.',
+    createBoard: { unknown: 'Falha ao criar o quadro. Tente novamente.' },
+    joinBoard: {
+      notFound: '✕ Quadro não encontrado. Verifique o ID e tente novamente.',
+      wrongPassword: '✕ Senha incorreta.',
+      unknown: 'Falha ao entrar no quadro. Tente novamente.',
+    },
+  },
+  enter: {
+    title: 'ENTRAR NO QUADRO',
+    titleNotFound: 'QUADRO NÃO ENCONTRADO',
+    titleError: 'ERRO',
+    loading: 'Conectando...',
+    boardLabel: 'Quadro: ',
+    labelPassword: 'Senha',
+    placeholderPassword: 'Senha do quadro',
+    errorPassword: '✕ A senha é obrigatória',
+    back: '← Voltar',
+    submit: 'ENTRAR →',
+    submitting: 'Verificando...',
+    descNotFound: 'Este quadro não existe ou o link é inválido.',
+    backHome: 'Voltar ao início',
+  },
   board: {
-    title: "Quadro #{id}",
     nav: {
       home: "INÍCIO",
       invite: "CONVIDAR",

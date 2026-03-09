@@ -4,6 +4,9 @@ import type { IMemberRepository } from '../../../domain/repositories/IMemberRepo
 import type { IGoBackLinkRepository } from '../../../domain/repositories/IGoBackLinkRepository.js'
 import { CreateBoardUseCase } from '../../../domain/use-cases/CreateBoard.js'
 import { RecoverBoardsUseCase } from '../../../domain/use-cases/RecoverBoards.js'
+import { GetBoardMetaUseCase } from '../../../domain/use-cases/GetBoardMeta.js'
+import { JoinBoardUseCase } from '../../../domain/use-cases/JoinBoard.js'
+import { AppError } from '../../../domain/errors/AppError.js'
 
 interface BoardRoutesOptions {
   boardRepo: IBoardRepository
@@ -32,16 +35,22 @@ const recoverSchema = {
   additionalProperties: false,
 }
 
-/** Board HTTP routes: create and recover. */
+const joinBoardSchema = {
+  type: 'object',
+  required: ['boardId'],
+  properties: {
+    boardId:  { type: 'string', minLength: 1 },
+    password: { type: 'string' },
+  },
+  additionalProperties: false,
+}
+
+/** Board HTTP routes: create, recover, get meta, and join. */
 export async function boardRoutes(fastify: FastifyInstance, options: BoardRoutesOptions) {
   fastify.post<{
     Body: { name: string; isPrivate?: boolean; password?: string; ownerEmail?: string }
   }>('/api/boards', { schema: { body: createBoardSchema } }, async (request, reply) => {
     const { name, isPrivate = false, password, ownerEmail } = request.body
-
-    if (isPrivate && !password) {
-      return reply.status(400).send({ error: 'Password required for private boards' })
-    }
 
     const useCase = new CreateBoardUseCase(
       options.boardRepo,
@@ -67,6 +76,36 @@ export async function boardRoutes(fastify: FastifyInstance, options: BoardRoutes
       // Silent — never reveal whether email exists
       await useCase.execute(request.body.email).catch(() => undefined)
       return reply.send({ sent: true })
+    },
+  )
+
+  fastify.get<{ Params: { id: string } }>(
+    '/api/boards/:id/meta',
+    async (request, reply) => {
+      const useCase = new GetBoardMetaUseCase(options.boardRepo)
+      const meta = await useCase.execute(request.params.id)
+      if (!meta) return reply.status(404).send({ error: 'Board not found' })
+      return reply.send(meta)
+    },
+  )
+
+  fastify.post<{ Body: { boardId: string; password?: string } }>(
+    '/api/boards/join',
+    { schema: { body: joinBoardSchema } },
+    async (request, reply) => {
+      const useCase = new JoinBoardUseCase(options.boardRepo, options.memberRepo)
+
+      try {
+        const result = await useCase.execute(request.body)
+        return reply.status(201).send(result)
+      } catch (err) {
+        if (err instanceof AppError) {
+          if (err.code === 'BOARD_NOT_FOUND') return reply.status(404).send({ error: err.message })
+          if (err.code === 'INVALID_PASSWORD') return reply.status(403).send({ error: err.message })
+          return reply.status(400).send({ error: err.message })
+        }
+        throw err
+      }
     },
   )
 }

@@ -4,30 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Stack
 
-- **Runtime:** Node.js + TypeScript (strict)
-- **Framework:** Fastify 5
-- **Package manager:** pnpm
-- **Testing:** Vitest
-
-> Currently installed: only `fastify`. TypeScript, Vitest, and all dev tooling still need to be added before any source code is written.
-
-## Bootstrap order (first-time setup)
-
-Before writing any code, install and configure:
-1. `typescript`, `@types/node`, `tsx` (or `ts-node`) as devDependencies
-2. `vitest` and `@vitest/coverage-v8`
-3. `tsconfig.json` with `"strict": true`
-4. `package.json` scripts: `dev`, `build`, `test`, `test:watch`
+| Tool | Role |
+|---|---|
+| **Node.js** | Runtime |
+| **TypeScript 5** (`strict: true`) | Language |
+| **Fastify 5** | HTTP framework |
+| **Drizzle ORM** | Query builder + schema manager |
+| **PostgreSQL** | Database (via `postgres-js`) |
+| **Nodemailer** | Transactional email |
+| **bcryptjs** | Password / token hashing |
+| **Vitest** | Test runner |
+| **tsx** | Dev server (no compilation step) |
+| **pnpm** | Package manager |
 
 ## Commands
 
 ```bash
 pnpm install               # install dependencies
-pnpm test                  # run all tests
+pnpm dev                   # start dev server (tsx watch src/infra/server.ts)
+pnpm build                 # tsc -p tsconfig.json
+pnpm test                  # run all tests once
 pnpm test src/__tests__/foo.test.ts  # run a single test file
 pnpm test:watch            # watch mode
-pnpm dev                   # start dev server (tsx watch)
-pnpm build                 # tsc --noEmit or tsc -p tsconfig.json
+pnpm test:coverage         # run tests with V8 coverage
+pnpm db:generate           # generate SQL migration from schema changes
+pnpm db:migrate            # apply pending migrations
+pnpm db:studio             # open Drizzle Studio (visual DB browser)
+pnpm db:seed               # insert dev seed data
 ```
 
 ## Methodology: XP / TDD
@@ -44,19 +47,30 @@ The project follows Clean Architecture with strict layer separation. Dependencie
 
 ```
 src/
-  domain/             # Enterprise rules — no framework, no I/O
-    entities/         # Core business objects and value objects
-    repositories/     # Interfaces (ports) — implemented by infra
-    use-cases/        # Application business rules (one class per use case)
+  domain/
+    entities/         # Plain TS interfaces — core business objects (BoardEntity, etc.)
+    errors/           # AppError — only error type for expected domain failures
+    repositories/     # I*Repository interfaces (ports) — never import infra here
+    services/         # IEmailService interface (port)
+    use-cases/        # One class per operation, single execute() method
 
-  infra/              # Adapters — implements domain interfaces
-    db/               # Repository implementations (DB, ORM, etc.)
+  infra/
+    db/
+      schema/         # Drizzle table definitions (snake_case columns)
+      migrations/     # Auto-generated SQL — never edit manually
+      seed/           # Dev seed data
+      connection.ts   # postgres-js client factory
     http/
-      routes/         # Fastify route handlers — thin, call use cases only
-      plugins/        # Fastify plugins (auth, cors, etc.)
-    server.ts         # Fastify instance creation and plugin registration
+      plugins/        # db, email, errorHandler — use fastify-plugin for shared decorators
+      routes/         # Thin handlers: validate → call use case → reply
+    repositories/     # Drizzle*Repository — implements I*Repository
+    services/         # NodemailerEmailService — implements IEmailService
+    server.ts         # buildApp() wires plugins + routes; main() starts server
 
-  __tests__/          # Mirrors src structure; unit-test domain, integration-test infra
+  __tests__/
+    domain/use-cases/ # Pure unit tests — mock all deps with vi.fn(), no DB, no HTTP
+    infra/routes/     # Integration tests — buildApp() + app.inject()
+    infra/            # Plugin integration tests
 ```
 
 ### Layer rules

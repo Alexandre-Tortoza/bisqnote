@@ -23,38 +23,48 @@ const router = createRouter({
     },
     {
       path: '/board/:id',
-      component: () => import('@/components/layout/PrivateLayout.vue'),
-      meta: { requiresAuth: true },
       children: [
         {
+          path: 'enter',
+          name: 'board-enter',
+          component: () => import('@/features/board/views/BoardEnterView.vue'),
+        },
+        {
           path: '',
-          name: 'board-home',
-          component: () => import('@/features/board/views/BoardHomeView.vue'),
-        },
-        {
-          path: 'invite',
-          name: 'board-invite',
-          component: () => import('@/features/board/views/BoardInviteView.vue'),
-        },
-        {
-          path: 'calendar',
-          name: 'board-calendar',
-          component: () => import('@/features/board/views/BoardCalendarView.vue'),
-        },
-        {
-          path: 'kanban',
-          name: 'board-kanban',
-          component: () => import('@/features/board/views/BoardKanbanView.vue'),
-        },
-        {
-          path: 'chat',
-          name: 'board-chat',
-          component: () => import('@/features/board/views/BoardChatView.vue'),
-        },
-        {
-          path: 'config',
-          name: 'board-config',
-          component: () => import('@/features/board/views/BoardConfigView.vue'),
+          component: () => import('@/components/layout/PrivateLayout.vue'),
+          meta: { requiresAuth: true },
+          children: [
+            {
+              path: '',
+              name: 'board-home',
+              component: () => import('@/features/board/views/BoardHomeView.vue'),
+            },
+            {
+              path: 'invite',
+              name: 'board-invite',
+              component: () => import('@/features/board/views/BoardInviteView.vue'),
+            },
+            {
+              path: 'calendar',
+              name: 'board-calendar',
+              component: () => import('@/features/board/views/BoardCalendarView.vue'),
+            },
+            {
+              path: 'kanban',
+              name: 'board-kanban',
+              component: () => import('@/features/board/views/BoardKanbanView.vue'),
+            },
+            {
+              path: 'chat',
+              name: 'board-chat',
+              component: () => import('@/features/board/views/BoardChatView.vue'),
+            },
+            {
+              path: 'config',
+              name: 'board-config',
+              component: () => import('@/features/board/views/BoardConfigView.vue'),
+            },
+          ],
         },
       ],
     },
@@ -65,7 +75,9 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth) {
     const session = useSessionStore()
     const boardId = to.params['id'] as string
-    if (!session.hasSession(boardId)) return { name: 'home' }
+    if (!session.hasSession(boardId)) {
+      return { name: 'board-enter', params: { id: boardId } }
+    }
   }
 })
 

@@ -1,8 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { RouterLinkStub } from '@vue/test-utils'
 import { createTestI18n } from '@/test-utils/i18n'
 import JoinView from '../views/JoinView.vue'
+
+const mockPush = vi.fn()
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: mockPush }),
+  RouterLink: RouterLinkStub,
+}))
 
 const mountJoin = () =>
   mount(JoinView, {
@@ -31,10 +37,17 @@ describe('JoinView', () => {
     expect(wrapper.find('[data-testid="boardId-error"]').exists()).toBe(false)
   })
 
-  it('shows password field when board is private', async () => {
+  it('navigates to board-enter when submitting a plain UUID', async () => {
     const wrapper = mountJoin()
-    expect(wrapper.find('input[name="password"]').exists()).toBe(false)
-    await wrapper.find('input[name="isPrivate"]').setValue(true)
-    expect(wrapper.find('input[name="password"]').exists()).toBe(true)
+    await wrapper.find('input[name="boardId"]').setValue('some-uuid-1234')
+    await wrapper.find('form').trigger('submit')
+    expect(mockPush).toHaveBeenCalledWith({ name: 'board-enter', params: { id: 'some-uuid-1234' } })
+  })
+
+  it('extracts UUID from a full URL before navigating', async () => {
+    const wrapper = mountJoin()
+    await wrapper.find('input[name="boardId"]').setValue('http://localhost:5173/board/abc-uuid-xyz')
+    await wrapper.find('form').trigger('submit')
+    expect(mockPush).toHaveBeenCalledWith({ name: 'board-enter', params: { id: 'abc-uuid-xyz' } })
   })
 })

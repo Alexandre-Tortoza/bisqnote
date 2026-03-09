@@ -18,48 +18,84 @@ pnpm dev                   # dev server at http://localhost:5173
 pnpm build                 # type-check + build
 pnpm type-check            # vue-tsc --build
 pnpm lint                  # oxlint + eslint (with --fix)
-pnpm test:unit             # Vitest (jsdom)
-pnpm test:unit src/__tests__/Foo.spec.ts  # single test file
+pnpm format                # oxfmt src/
+pnpm test:unit             # Vitest (jsdom, watch mode)
+pnpm test:unit --run       # run unit tests once
+pnpm test:unit src/features/public/__tests__/useCreateBoard.spec.ts  # single test file
 pnpm test:e2e              # Playwright (requires pnpm dev or preview running)
 ```
 
 ## Backend Commands
 
-> Backend is in bootstrap phase — TypeScript, Vitest, and dev tooling not yet installed. See `backend/CLAUDE.md` for bootstrap checklist.
-
 ```bash
 cd backend
 pnpm install
-pnpm dev                   # tsx watch src/server.ts
+pnpm dev                   # tsx watch src/infra/server.ts
+pnpm build                 # tsc -p tsconfig.json
 pnpm test                  # Vitest
 pnpm test src/__tests__/foo.test.ts  # single test file
-pnpm build                 # tsc
+pnpm test:watch            # watch mode
+pnpm test:coverage         # V8 coverage report
+pnpm db:generate           # generate migration from schema changes
+pnpm db:migrate            # apply pending migrations
+pnpm db:studio             # Drizzle Studio (visual DB browser)
+pnpm db:seed               # insert dev seed data
 ```
 
 ## Architecture
 
 ### Frontend (`frontend/src/`)
 
-- `main.ts` — app bootstrap, registers Pinia and Vue Router
-- `router/` — Vue Router configuration
-- `stores/` — Pinia stores (actions only, no direct state mutation)
-- `__tests__/` — Vitest unit tests alongside source
+Feature-based modular architecture — each domain is self-contained under `src/features/<name>/`. See `frontend/CONTRIBUTING.md` for the full guide.
+
+```
+src/
+  features/        # public (/, /create, /join) · board (/board/:id and sub-routes)
+  components/      # shared UI: ui/, layout/, forms/, feedback/
+  stores/          # global Pinia stores: useThemeStore, useSessionStore, useLocaleStore
+  services/        # HTTP client (api.ts) and ApiError
+  plugins/         # i18n setup
+  locales/         # en.ts, pt-BR.ts
+  router/          # Vue Router (imports views from feature index.ts barrels)
+  composables/     # global composables
+  utils/           # global pure utilities
+  test-utils/      # shared helpers for unit tests
+```
+
+Key rules:
+- `<script setup lang="ts">` everywhere — no Options API
+- All HTTP calls through `src/services/api.ts` only
+- Cross-feature imports must go through `feature/index.ts` barrels
+- Stores use Composition API style; guard `localStorage`/`window` with `typeof` checks
 
 Linting: dual-linter setup — Oxlint runs first (fast), then ESLint for rules Oxlint doesn't cover.
 
-### Backend (`backend/src/`) — not yet scaffolded
+### Backend (`backend/src/`)
 
-Expected layout per `backend/CLAUDE.md`:
+Follows **Clean Architecture** — dependencies always point inward (infra → domain, never domain → infra).
+
 ```
 src/
-  server.ts       # Fastify instance + plugin registration
-  routes/         # Thin HTTP handlers, delegate to services
-  services/       # Business logic
-  plugins/        # Fastify plugins (auth, db, etc.)
-  __tests__/      # Tests mirroring src structure
+  domain/             # Pure TypeScript — no framework, no I/O
+    entities/         # Business object interfaces (BoardEntity, etc.)
+    errors/           # AppError — expected domain failures
+    repositories/     # I*Repository interfaces (ports)
+    services/         # IEmailService interface (port)
+    use-cases/        # One class per operation, single execute() method
+
+  infra/              # All framework/I/O code
+    db/schema/        # Drizzle table definitions
+    db/migrations/    # Auto-generated SQL (never edit manually)
+    http/routes/      # Thin Fastify handlers — call use cases only
+    http/plugins/     # db, email, errorHandler (fastify-plugin)
+    repositories/     # Drizzle implementations of I* ports
+    services/         # Nodemailer implementation of IEmailService
+    server.ts         # buildApp() + main()
+
+  __tests__/          # Mirrors src; unit tests for domain, integration tests for infra
 ```
 
-Fastify plugin encapsulation: use `fastify.register()` to scope context; use `fastify-plugin` only when sharing decorators across scopes.
+Fastify plugin encapsulation: use `fastify.register()` to scope context; use `fastify-plugin` only when sharing decorators (e.g., `fastify.db`) across scopes.
 
 ## Methodology
 

@@ -27,6 +27,11 @@ export class DrizzleBoardRepository implements IBoardRepository {
     return this.toEntity(row!)
   }
 
+  async findById(id: string): Promise<BoardEntity | null> {
+    const [row] = await this.db.select().from(boards).where(eq(boards.id, id)).limit(1)
+    return row ? this.toEntity(row) : null
+  }
+
   async findByOwnerEmail(email: string): Promise<BoardEntity[]> {
     const rows = await this.db.select().from(boards).where(eq(boards.owner_email, email))
     return rows.map((row) => this.toEntity(row))
