@@ -45,14 +45,31 @@ This document covers architecture, conventions, and workflows for contributing t
 ```
 src/
 ├── features/            # One folder per domain feature (self-contained)
-│   └── <name>/
-│       ├── components/  # Components used only inside this feature
-│       ├── composables/ # Composables scoped to this feature
+│   ├── public/          # Unauthenticated pages: home, create, join
+│   │   ├── components/
+│   │   ├── composables/
+│   │   ├── views/
+│   │   ├── __tests__/
+│   │   └── index.ts
+│   │
+│   └── board/           # Board domain — split into sub-features
+│       ├── enter/       # Sub-feature: board entry / password verification
+│       ├── home/        # Sub-feature: board home dashboard
+│       ├── kanban/      # Sub-feature: kanban view
+│       ├── calendar/    # Sub-feature: calendar view
+│       ├── chat/        # Sub-feature: real-time chat
+│       ├── invite/      # Sub-feature: invite members
+│       ├── config/      # Sub-feature: board settings
+│       └── index.ts     # Aggregates all sub-feature barrels
+│
+│   Each sub-feature follows the same structure as a top-level feature:
+│       ├── components/  # Components used only inside this sub-feature
+│       ├── composables/ # Composables scoped to this sub-feature
 │       ├── views/       # Route-level page components
-│       ├── __tests__/   # Unit tests for this feature
+│       ├── __tests__/   # Unit tests for this sub-feature
 │       ├── store.ts     # Pinia store (when needed)
-│       ├── types.ts     # TypeScript types local to this feature
-│       └── index.ts     # Public barrel — the only import surface
+│       ├── types.ts     # TypeScript types local to this sub-feature
+│       └── index.ts     # Public barrel — consumed by board/index.ts
 │
 ├── components/          # Shared, reusable components
 │   ├── ui/              # Primitives: Button, Input, Badge, Icon…
@@ -153,7 +170,9 @@ Feature stores live inside their own feature folder (`src/features/<name>/store.
 
 ## Adding a New Feature
 
-### 1. Create the folder scaffold
+### Top-level feature (new domain, e.g. `profile`)
+
+#### 1. Create the folder scaffold
 
 ```
 src/features/<name>/
@@ -164,7 +183,7 @@ src/features/<name>/
   index.ts
 ```
 
-### 2. Create the barrel (`index.ts`)
+#### 2. Create the barrel (`index.ts`)
 
 Export only what outside consumers need:
 
@@ -174,17 +193,59 @@ export { default as ProfileView } from './views/ProfileView.vue'
 export { useProfile } from './composables/useProfile'
 ```
 
-### 3. Register routes
+#### 3. Register routes
 
-Add the new routes to `src/router/index.ts`, importing views from the feature barrel:
+Add the new routes to `src/router/index.ts`, importing views via the lazy-import path:
 
 ```ts
-import { ProfileView } from '@/features/profile'
-
 {
   path: '/profile',
   name: 'profile',
-  component: ProfileView,
+  component: () => import('@/features/profile/views/ProfileView.vue'),
+}
+```
+
+---
+
+### Board sub-feature (new section within `/board/:id`)
+
+The `board` feature is too large to stay flat, so it is split into sub-features.
+Each sub-feature is a self-contained module — the same rules apply as for a top-level feature.
+
+#### 1. Create the sub-feature scaffold
+
+```
+src/features/board/<sub>/
+  views/
+  components/      (add if needed)
+  composables/     (add if needed)
+  __tests__/
+  index.ts         ← barrel for this sub-feature
+```
+
+#### 2. Export from the sub-feature barrel
+
+```ts
+// src/features/board/kanban/index.ts
+export { default as BoardKanbanView } from './views/BoardKanbanView.vue'
+export { useKanban } from './composables/useKanban'
+```
+
+#### 3. Re-export from the board barrel
+
+```ts
+// src/features/board/index.ts  (add one line)
+export { BoardKanbanView, useKanban } from './kanban'
+```
+
+#### 4. Register routes (lazy import by path)
+
+```ts
+// src/router/index.ts
+{
+  path: 'kanban',
+  name: 'board-kanban',
+  component: () => import('@/features/board/kanban/views/BoardKanbanView.vue'),
 }
 ```
 

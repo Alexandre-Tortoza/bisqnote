@@ -27,7 +27,7 @@ const router = createRouter({
         {
           path: 'enter',
           name: 'board-enter',
-          component: () => import('@/features/board/views/BoardEnterView.vue'),
+          component: () => import('@/features/board/enter/views/BoardEnterView.vue'),
         },
         {
           path: '',
@@ -37,32 +37,32 @@ const router = createRouter({
             {
               path: '',
               name: 'board-home',
-              component: () => import('@/features/board/views/BoardHomeView.vue'),
+              component: () => import('@/features/board/home/views/BoardHomeView.vue'),
             },
             {
               path: 'invite',
               name: 'board-invite',
-              component: () => import('@/features/board/views/BoardInviteView.vue'),
+              component: () => import('@/features/board/invite/views/BoardInviteView.vue'),
             },
             {
               path: 'calendar',
               name: 'board-calendar',
-              component: () => import('@/features/board/views/BoardCalendarView.vue'),
+              component: () => import('@/features/board/calendar/views/BoardCalendarView.vue'),
             },
             {
               path: 'kanban',
               name: 'board-kanban',
-              component: () => import('@/features/board/views/BoardKanbanView.vue'),
+              component: () => import('@/features/board/kanban/views/BoardKanbanView.vue'),
             },
             {
               path: 'chat',
               name: 'board-chat',
-              component: () => import('@/features/board/views/BoardChatView.vue'),
+              component: () => import('@/features/board/chat/views/BoardChatView.vue'),
             },
             {
               path: 'config',
               name: 'board-config',
-              component: () => import('@/features/board/views/BoardConfigView.vue'),
+              component: () => import('@/features/board/config/views/BoardConfigView.vue'),
             },
           ],
         },
