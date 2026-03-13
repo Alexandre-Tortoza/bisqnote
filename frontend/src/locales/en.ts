@@ -119,6 +119,15 @@ export default {
       config: "CONFIG",
     },
   },
+  invite: {
+    title: "INVITE TO BOARD",
+    desc: "Share this link with anyone you want to invite. They will need to enter the board password if one is set.",
+    boardId: "Board ID",
+    linkLabel: "Join link",
+    copy: "COPY →",
+    copied: "COPIED ✓",
+    hint: "Anyone with this link can join. Keep it private if your board is password-protected.",
+  },
   chat: {
     title: "GROUP CHAT",
     statusConnecting: "connecting...",

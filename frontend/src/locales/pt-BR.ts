@@ -119,6 +119,15 @@ export default {
       config: "CONFIG",
     },
   },
+  invite: {
+    title: "CONVIDAR PARA O QUADRO",
+    desc: "Compartilhe este link com quem você quiser convidar. Será necessário inserir a senha do quadro, se houver uma definida.",
+    boardId: "ID do quadro",
+    linkLabel: "Link de acesso",
+    copy: "COPIAR →",
+    copied: "COPIADO ✓",
+    hint: "Qualquer pessoa com este link pode entrar. Mantenha-o privado se o seu quadro tiver senha.",
+  },
   chat: {
     title: "CHAT EM GRUPO",
     statusConnecting: "conectando...",
