@@ -18,6 +18,7 @@ const makeLink = (overrides: Partial<GoBackLinkEntity> = {}): GoBackLinkEntity =
 const makeMember = (overrides: Partial<BoardMemberEntity> = {}): BoardMemberEntity => ({
   id: 'member-1',
   boardId: 'board-1',
+  userId: null,
   tokenHash: 'old-hash',
   role: 'owner',
   encryptedContent: '{}',
@@ -32,7 +33,9 @@ describe('RedeemGoBackLinkUseCase', () => {
     memberRepo = {
       create: vi.fn(),
       findById: vi.fn().mockResolvedValue(makeMember()),
+      findByUserAndBoard: vi.fn().mockResolvedValue(null),
       updateTokenHash: vi.fn().mockResolvedValue(undefined),
+      findAllByBoardId: vi.fn(),
     }
     goBackLinkRepo = {
       create: vi.fn(),

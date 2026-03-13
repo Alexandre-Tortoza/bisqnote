@@ -52,6 +52,7 @@ describe('JoinBoardUseCase', () => {
       findById: vi.fn().mockResolvedValue(null),
       findByUserAndBoard: vi.fn().mockResolvedValue(null),
       updateTokenHash: vi.fn().mockResolvedValue(undefined),
+      findAllByBoardId: vi.fn(),
     }
     userRepo = {
       create: vi.fn(),

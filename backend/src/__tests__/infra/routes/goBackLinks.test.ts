@@ -22,6 +22,7 @@ describe('GET /api/go-back/:token', () => {
   const validMember = {
     id: 'member-1',
     boardId: 'board-1',
+    userId: null,
     tokenHash: 'hash',
     role: 'owner' as const,
     encryptedContent: '{}',
@@ -45,7 +46,9 @@ describe('GET /api/go-back/:token', () => {
     const memberRepo: IMemberRepository = {
       create: vi.fn(),
       findById: vi.fn().mockResolvedValue(validMember),
+      findByUserAndBoard: vi.fn().mockResolvedValue(null),
       updateTokenHash: vi.fn().mockResolvedValue(undefined),
+      findAllByBoardId: vi.fn(),
     }
 
     const app = await buildTestApp(goBackLinkRepo, memberRepo)
@@ -66,7 +69,9 @@ describe('GET /api/go-back/:token', () => {
     const memberRepo: IMemberRepository = {
       create: vi.fn(),
       findById: vi.fn(),
+      findByUserAndBoard: vi.fn().mockResolvedValue(null),
       updateTokenHash: vi.fn(),
+      findAllByBoardId: vi.fn(),
     }
 
     const app = await buildTestApp(goBackLinkRepo, memberRepo)

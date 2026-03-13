@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
-import type { IMemberRepository } from '../../domain/repositories/IMemberRepository.js'
+import type { IMemberRepository, BoardMemberInfo } from '../../domain/repositories/IMemberRepository.js'
 import type { BoardMemberEntity } from '../../domain/entities/BoardMember.js'
-import { boardMembers } from '../db/schema/index.js'
+import { boardMembers, users } from '../db/schema/index.js'
 
 /** Drizzle ORM implementation of IMemberRepository. */
 export class DrizzleMemberRepository implements IMemberRepository {
@@ -44,6 +44,16 @@ export class DrizzleMemberRepository implements IMemberRepository {
 
   async updateTokenHash(id: string, tokenHash: string): Promise<void> {
     await this.db.update(boardMembers).set({ token_hash: tokenHash }).where(eq(boardMembers.id, id))
+  }
+
+  async findAllByBoardId(boardId: string): Promise<BoardMemberInfo[]> {
+    const rows = await this.db
+      .select({ memberId: boardMembers.id, username: users.username })
+      .from(boardMembers)
+      .innerJoin(users, eq(boardMembers.user_id, users.id))
+      .where(eq(boardMembers.board_id, boardId))
+
+    return rows.map((row) => ({ memberId: row.memberId, username: row.username }))
   }
 
   private toEntity(row: typeof boardMembers.$inferSelect): BoardMemberEntity {

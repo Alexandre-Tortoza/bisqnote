@@ -1,5 +1,11 @@
 import type { BoardMemberEntity } from '../entities/BoardMember.js'
 
+/** Minimal member info with resolved username — used for board member listings. */
+export interface BoardMemberInfo {
+  memberId: string
+  username: string
+}
+
 /** Port for board member persistence — implemented by infra layer only. */
 export interface IMemberRepository {
   create(data: {
@@ -15,4 +21,7 @@ export interface IMemberRepository {
   findByUserAndBoard(userId: string, boardId: string): Promise<BoardMemberEntity | null>
 
   updateTokenHash(id: string, tokenHash: string): Promise<void>
+
+  /** Returns all members of a board with their resolved usernames. */
+  findAllByBoardId(boardId: string): Promise<BoardMemberInfo[]>
 }

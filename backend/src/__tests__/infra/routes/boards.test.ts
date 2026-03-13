@@ -42,6 +42,7 @@ const makeFakeDb = () => ({
     findById: vi.fn().mockResolvedValue(null),
     findByUserAndBoard: vi.fn().mockResolvedValue(null),
     updateTokenHash: vi.fn().mockResolvedValue(undefined),
+    findAllByBoardId: vi.fn(),
   } satisfies IMemberRepository,
   goBackLinkRepo: {
     create: vi.fn().mockResolvedValue({ id: 'link-1', boardId: 'board-1', memberId: 'member-1', token: 'tok', expiresAt: new Date(), usedAt: null }),
