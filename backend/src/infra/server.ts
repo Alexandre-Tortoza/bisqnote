@@ -1,13 +1,21 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
+import websocketPlugin from "@fastify/websocket";
 import { dbPlugin } from "./http/plugins/db.js";
 import { emailPlugin } from "./http/plugins/email.js";
 import { errorHandlerPlugin } from "./http/plugins/errorHandler.js";
 import { boardRoutes } from "./http/routes/boards.js";
+import { calendarRoutes } from "./http/routes/calendar.js";
+import { chatRoutes } from "./http/routes/chat.js";
 import { goBackLinkRoutes } from "./http/routes/goBackLinks.js";
+import { kanbanRoutes } from "./http/routes/kanban.js";
 import { userRoutes } from "./http/routes/users.js";
 import { DrizzleBoardRepository } from "./repositories/DrizzleBoardRepository.js";
+import { DrizzleCalendarEventRepository } from "./repositories/DrizzleCalendarEventRepository.js";
+import { DrizzleChatMessageRepository } from "./repositories/DrizzleChatMessageRepository.js";
+import { DrizzleKanbanColumnRepository } from "./repositories/DrizzleKanbanColumnRepository.js";
+import { DrizzleKanbanTaskRepository } from "./repositories/DrizzleKanbanTaskRepository.js";
 import { DrizzleMemberRepository } from "./repositories/DrizzleMemberRepository.js";
 import { DrizzleGoBackLinkRepository } from "./repositories/DrizzleGoBackLinkRepository.js";
 import { DrizzleUserRepository } from "./repositories/DrizzleUserRepository.js";
@@ -24,6 +32,7 @@ export async function buildApp() {
   await app.register(cors, {
     origin: process.env["CORS_ORIGIN"] ?? "http://localhost:5173",
   });
+  await app.register(websocketPlugin);
 
   // Global rate limit: 200 requests / 15 min per IP.
   // Sensitive endpoints apply their own stricter limits (see routes).
@@ -49,6 +58,26 @@ export async function buildApp() {
   await app.register(goBackLinkRoutes, {
     goBackLinkRepo: new DrizzleGoBackLinkRepository(app.db),
     memberRepo: new DrizzleMemberRepository(app.db),
+  });
+
+  const memberRepo = new DrizzleMemberRepository(app.db);
+  await app.register(chatRoutes, {
+    userRepo,
+    memberRepo,
+    chatRepo: new DrizzleChatMessageRepository(app.db),
+  });
+
+  await app.register(kanbanRoutes, {
+    userRepo,
+    memberRepo,
+    columnRepo: new DrizzleKanbanColumnRepository(app.db),
+    taskRepo: new DrizzleKanbanTaskRepository(app.db),
+  });
+
+  await app.register(calendarRoutes, {
+    userRepo,
+    memberRepo,
+    calendarRepo: new DrizzleCalendarEventRepository(app.db),
   });
 
   return app;
