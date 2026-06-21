@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
-import { createClient } from '../connection'
+import { createClient } from '../connection.js'
 import {
   boards, boardMembers, goBackLinks,
   kanbanColumns, kanbanTasks,
@@ -10,7 +10,7 @@ import {
   polls, pollVotes,
   fileAttachments,
   activityLog,
-} from '../schema/index'
+} from '../schema/index.js'
 
 const sql = createClient()
 const db = drizzle(sql)
@@ -88,14 +88,22 @@ async function seed(): Promise<void> {
 
     const [event1] = await tx.insert(calendarEvents).values([
       {
-        board_id:          publicBoard.id,
-        created_by:        pubOwner.id,
-        encrypted_content: j({ title: 'Sprint Planning', description: 'Plan Q1 sprint', startAt: '2026-03-10T09:00:00Z', endAt: '2026-03-10T10:00:00Z' }),
+        board_id:                publicBoard.id,
+        created_by:              pubOwner.id,
+        encrypted_content:       j({ title: 'Sprint Planning', description: 'Plan Q1 sprint' }),
+        start_at:                new Date('2026-03-10T09:00:00Z'),
+        end_at:                  new Date('2026-03-10T10:00:00Z'),
+        notify_start_days_before: 0,
+        notify_repeat_daily:      false,
       },
       {
-        board_id:          publicBoard.id,
-        created_by:        pubMember.id,
-        encrypted_content: j({ title: 'Demo Day', description: 'Show progress to stakeholders', startAt: '2026-03-20T14:00:00Z', endAt: '2026-03-20T15:00:00Z' }),
+        board_id:                publicBoard.id,
+        created_by:              pubMember.id,
+        encrypted_content:       j({ title: 'Demo Day', description: 'Show progress to stakeholders' }),
+        start_at:                new Date('2026-03-20T14:00:00Z'),
+        end_at:                  new Date('2026-03-20T15:00:00Z'),
+        notify_start_days_before: 0,
+        notify_repeat_daily:      false,
       },
     ]).returning()
 
@@ -203,8 +211,8 @@ async function seed(): Promise<void> {
     if (!privTask1) throw new Error('Failed to insert private kanban tasks')
 
     await tx.insert(calendarEvents).values([
-      { board_id: privateBoard.id, created_by: privOwner.id,  encrypted_content: '[ENCRYPTED]' },
-      { board_id: privateBoard.id, created_by: privMember.id, encrypted_content: '[ENCRYPTED]' },
+      { board_id: privateBoard.id, created_by: privOwner.id,  encrypted_content: '[ENCRYPTED]', start_at: new Date('2026-03-01T09:00:00Z') },
+      { board_id: privateBoard.id, created_by: privMember.id, encrypted_content: '[ENCRYPTED]', start_at: new Date('2026-03-05T14:00:00Z') },
     ])
 
     await tx.insert(chatMessages).values([

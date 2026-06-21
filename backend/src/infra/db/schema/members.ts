@@ -1,6 +1,6 @@
 import { pgTable, pgEnum, uuid, text, timestamp } from 'drizzle-orm/pg-core'
-import { boards } from './boards'
-import { users } from './users'
+import { boards } from './boards.js'
+import { users } from './users.js'
 
 export const memberRoleEnum = pgEnum('member_role', ['owner', 'member'])
 
@@ -14,7 +14,7 @@ export const boardMembers = pgTable('board_members', {
   user_id:           uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
   token_hash:        text('token_hash').notNull(),
   role:              memberRoleEnum('role').notNull().default('member'),
-  encrypted_content: text('encrypted_content').notNull(), // JSON: {displayName}
+  encrypted_content: text('encrypted_content').notNull(), // JSON: {displayName} (currently unused placeholder)
   joined_at:         timestamp('joined_at').notNull().defaultNow(),
 })
 

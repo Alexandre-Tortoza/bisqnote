@@ -1,8 +1,10 @@
 import { pgTable, uuid, text, boolean, timestamp } from 'drizzle-orm/pg-core'
 
 /**
- * Main board entity. All user-readable content stored in encrypted_content.
- * Public boards: plaintext JSON. Private boards: AES-256 ciphertext.
+ * Main board entity.
+ * encrypted_content: plaintext JSON (board name) — the board name is sent
+ * unencrypted because the encryption key depends on the boardId generated
+ * by the server at creation time.
  */
 export const boards = pgTable('boards', {
   id:                uuid('id').primaryKey().defaultRandom(),

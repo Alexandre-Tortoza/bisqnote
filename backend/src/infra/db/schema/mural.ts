@@ -1,6 +1,6 @@
 import { pgTable, uuid, text, timestamp } from 'drizzle-orm/pg-core'
-import { boards } from './boards'
-import { boardMembers } from './members'
+import { boards } from './boards.js'
+import { boardMembers } from './members.js'
 
 /**
  * A sticky-note style entry on the board's collaborative mural.

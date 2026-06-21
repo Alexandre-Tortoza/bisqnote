@@ -1,6 +1,6 @@
 import { pgTable, pgEnum, uuid, text, timestamp } from 'drizzle-orm/pg-core'
-import { boards } from './boards'
-import { boardMembers } from './members'
+import { boards } from './boards.js'
+import { boardMembers } from './members.js'
 
 export const fileTargetTypeEnum = pgEnum('file_target_type', ['task', 'mural', 'meeting', 'chat'])
 
@@ -13,7 +13,7 @@ export const fileAttachments = pgTable('file_attachments', {
   uploaded_by:       uuid('uploaded_by').references(() => boardMembers.id, { onDelete: 'set null' }),
   target_type:       fileTargetTypeEnum('target_type').notNull(),
   target_id:         uuid('target_id').notNull(),
-  encrypted_content: text('encrypted_content').notNull(), // JSON: {filename, mimeType, sizeBytes, storageKey}
+  encrypted_content: text('encrypted_content').notNull(), // JSON: {name, mimeType, sizeBytes, storageKey} — metadata for server-side file serving
   created_at:        timestamp('created_at').notNull().defaultNow(),
 })
 
