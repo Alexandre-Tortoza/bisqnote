@@ -5,17 +5,8 @@ import type { IEmailService } from '../../../domain/services/IEmailService.js'
 import type { IBoardRepository } from '../../../domain/repositories/IBoardRepository.js'
 import type { IMemberRepository } from '../../../domain/repositories/IMemberRepository.js'
 import type { IGoBackLinkRepository } from '../../../domain/repositories/IGoBackLinkRepository.js'
-import type { IUserRepository } from '../../../domain/repositories/IUserRepository.js'
 import { boardRoutes } from '../../../infra/http/routes/boards.js'
 import { errorHandlerPlugin } from '../../../infra/http/plugins/errorHandler.js'
-
-const makeUser = () => ({
-  id: 'user-1',
-  username: 'johndoe',
-  passwordHash: 'hash',
-  tokenHash: 'tokenhash',
-  createdAt: new Date(),
-})
 
 const makeFakeDb = () => ({
   boardRepo: {
@@ -53,12 +44,6 @@ const makeFakeDb = () => ({
     sendBoardCreated: vi.fn().mockResolvedValue(undefined),
     sendRecovery: vi.fn().mockResolvedValue(undefined),
   } satisfies IEmailService,
-  userRepo: {
-    create: vi.fn().mockResolvedValue(makeUser()),
-    findByUsername: vi.fn().mockResolvedValue(null),
-    findByTokenHash: vi.fn().mockResolvedValue(makeUser()),
-    updateTokenHash: vi.fn().mockResolvedValue(undefined),
-  } satisfies IUserRepository,
 })
 
 async function buildTestApp() {
@@ -66,6 +51,15 @@ async function buildTestApp() {
   const app = Fastify({ logger: false })
 
   await app.register(errorHandlerPlugin)
+
+  const authMockPlugin = fp(async (fastify) => {
+    fastify.decorateRequest('userId', '')
+    fastify.decorate('authenticate', async (request) => {
+      request.userId = 'user-1'
+    })
+  })
+
+  await app.register(authMockPlugin)
 
   const dbMockPlugin = fp(async (fastify) => {
     fastify.decorate('db', {} as never)
@@ -77,7 +71,6 @@ async function buildTestApp() {
     boardRepo: fakes.boardRepo,
     memberRepo: fakes.memberRepo,
     goBackLinkRepo: fakes.goBackLinkRepo,
-    userRepo: fakes.userRepo,
   })
 
   return { app, fakes }
@@ -89,7 +82,7 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: { name: 'Test Board', userToken: 'valid-token' },
+      payload: { name: 'Test Board' },
     })
     expect(res.statusCode).toBe(201)
     const body = res.json()
@@ -102,7 +95,7 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: { userToken: 'valid-token' },
+      payload: {},
     })
     expect(res.statusCode).toBe(400)
   })
@@ -112,7 +105,7 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: { name: 'Secret', isPrivate: true, userToken: 'valid-token' },
+      payload: { name: 'Secret', isPrivate: true },
     })
     // Schema-level 'if/then' rejects the request before it reaches domain logic
     expect(res.statusCode).toBe(400)
@@ -123,7 +116,7 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: { name: 'Secret', isPrivate: true, password: 'short', userToken: 'valid-token' },
+      payload: { name: 'Secret', isPrivate: true, password: 'short' },
     })
     expect(res.statusCode).toBe(400)
   })
@@ -133,20 +126,9 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: { name: 'A'.repeat(201), userToken: 'valid-token' },
+      payload: { name: 'A'.repeat(201) },
     })
     expect(res.statusCode).toBe(400)
-  })
-
-  it('returns 401 when userToken is invalid', async () => {
-    const { app, fakes } = await buildTestApp()
-    vi.mocked(fakes.userRepo.findByTokenHash).mockResolvedValueOnce(null)
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/boards',
-      payload: { name: 'Test Board', userToken: 'bad-token' },
-    })
-    expect(res.statusCode).toBe(401)
   })
 
   it('returns 500 with generic message when boardRepo.create throws', async () => {
@@ -158,7 +140,7 @@ describe('POST /api/boards', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/boards',
-      payload: { name: 'Test Board', userToken: 'valid-token' },
+      payload: { name: 'Test Board' },
     })
     expect(res.statusCode).toBe(500)
     const body = res.json()

@@ -1,18 +1,16 @@
-import { createHash } from 'node:crypto'
 import { hash } from 'bcryptjs'
 import { AppError } from '../errors/AppError.js'
 import type { IBoardRepository } from '../repositories/IBoardRepository.js'
 import type { IMemberRepository } from '../repositories/IMemberRepository.js'
 import type { IGoBackLinkRepository } from '../repositories/IGoBackLinkRepository.js'
 import type { IEmailService } from '../services/IEmailService.js'
-import type { IUserRepository } from '../repositories/IUserRepository.js'
 
 export interface CreateBoardInput {
   name: string
   isPrivate: boolean
   password?: string
   ownerEmail?: string
-  userToken: string
+  userId: string
 }
 
 export interface CreateBoardOutput {
@@ -28,19 +26,14 @@ export class CreateBoardUseCase {
     private readonly memberRepo: IMemberRepository,
     private readonly goBackLinkRepo: IGoBackLinkRepository,
     private readonly emailService: IEmailService,
-    private readonly userRepo: IUserRepository,
   ) {}
 
   async execute(input: CreateBoardInput): Promise<CreateBoardOutput> {
-    const { name, isPrivate, password, ownerEmail, userToken } = input
+    const { name, isPrivate, password, ownerEmail, userId } = input
 
     if (isPrivate && !password) {
       throw new AppError('INVALID_INPUT', 'Password required for private boards')
     }
-
-    const tokenHash = createHash('sha256').update(userToken).digest('hex')
-    const user = await this.userRepo.findByTokenHash(tokenHash)
-    if (!user) throw new AppError('INVALID_USER_TOKEN', 'Invalid or expired user token')
 
     const passwordHash = isPrivate && password ? await hash(password, 12) : null
     const encryptedContent = JSON.stringify({ name })
@@ -57,7 +50,7 @@ export class CreateBoardUseCase {
 
     const member = await this.memberRepo.create({
       boardId: board.id,
-      userId: user.id,
+      userId,
       tokenHash: memberTokenHash,
       role: 'owner',
       encryptedContent: JSON.stringify({}),
@@ -74,14 +67,21 @@ export class CreateBoardUseCase {
         expiresAt,
       })
 
-      await this.emailService.sendBoardCreated({
-        to: ownerEmail,
-        boardId: board.id,
-        boardName: name,
-        memberToken,
-        goBackToken,
-        appUrl: process.env['APP_URL'] ?? 'http://localhost:5173',
-      })
+      try {
+        await this.emailService.sendBoardCreated({
+          to: ownerEmail,
+          boardId: board.id,
+          boardName: name,
+          memberToken,
+          goBackToken,
+          appUrl: process.env['APP_URL'] ?? 'http://localhost:5173',
+        })
+      } catch {
+        // Email delivery is a non-critical side-effect; a failure here should
+        // not prevent the board from being used. The recovery link has already
+        // been persisted, so the owner can still regain access via the go-back
+        // link sent later or in the UI.
+      }
     }
 
     return { boardId: board.id, memberToken, role: 'owner' }

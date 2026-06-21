@@ -2,7 +2,6 @@ import type { FastifyInstance } from 'fastify'
 import type { IBoardRepository } from '../../../domain/repositories/IBoardRepository.js'
 import type { IMemberRepository } from '../../../domain/repositories/IMemberRepository.js'
 import type { IGoBackLinkRepository } from '../../../domain/repositories/IGoBackLinkRepository.js'
-import type { IUserRepository } from '../../../domain/repositories/IUserRepository.js'
 import { CreateBoardUseCase } from '../../../domain/use-cases/CreateBoard.js'
 import { RecoverBoardsUseCase } from '../../../domain/use-cases/RecoverBoards.js'
 import { GetBoardMetaUseCase } from '../../../domain/use-cases/GetBoardMeta.js'
@@ -13,19 +12,17 @@ interface BoardRoutesOptions {
   boardRepo: IBoardRepository
   memberRepo: IMemberRepository
   goBackLinkRepo: IGoBackLinkRepository
-  userRepo: IUserRepository
 }
 
 const createBoardSchema = {
   type: 'object',
-  required: ['name', 'userToken'],
+  required: ['name'],
   properties: {
     name:       { type: 'string', minLength: 1, maxLength: 200 },
     isPrivate:  { type: 'boolean' },
     // Private-board passwords: 8–128 chars — same reasoning as user passwords.
     password:   { type: 'string', minLength: 8, maxLength: 128 },
     ownerEmail: { type: 'string', format: 'email', maxLength: 254 },
-    userToken:  { type: 'string', minLength: 1 },
   },
   // When isPrivate is true, enforce password at the schema layer as well so
   // invalid requests are rejected before reaching domain logic.
@@ -45,12 +42,11 @@ const recoverSchema = {
 
 const joinBoardSchema = {
   type: 'object',
-  required: ['boardId', 'userToken'],
+  required: ['boardId'],
   properties: {
     boardId:   { type: 'string', minLength: 1, maxLength: 100 },
     // Join password — same constraints as create to ensure consistent enforcement.
     password:  { type: 'string', minLength: 8, maxLength: 128 },
-    userToken: { type: 'string', minLength: 1 },
   },
   additionalProperties: false,
 }
@@ -58,20 +54,19 @@ const joinBoardSchema = {
 /** Board HTTP routes: create, recover, get meta, and join. */
 export async function boardRoutes(fastify: FastifyInstance, options: BoardRoutesOptions) {
   fastify.post<{
-    Body: { name: string; isPrivate?: boolean; password?: string; ownerEmail?: string; userToken: string }
-  }>('/api/boards', { schema: { body: createBoardSchema } }, async (request, reply) => {
-    const { name, isPrivate = false, password, ownerEmail, userToken } = request.body
+    Body: { name: string; isPrivate?: boolean; password?: string; ownerEmail?: string }
+  }>('/api/boards', { schema: { body: createBoardSchema }, preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const { name, isPrivate = false, password, ownerEmail } = request.body
 
     const useCase = new CreateBoardUseCase(
       options.boardRepo,
       options.memberRepo,
       options.goBackLinkRepo,
       fastify.emailService,
-      options.userRepo,
     )
 
     try {
-      const result = await useCase.execute({ name, isPrivate, password, ownerEmail, userToken })
+      const result = await useCase.execute({ userId: request.userId, name, isPrivate, password, ownerEmail })
       return reply.status(201).send(result)
     } catch (err) {
       if (err instanceof AppError) {
@@ -112,14 +107,14 @@ export async function boardRoutes(fastify: FastifyInstance, options: BoardRoutes
     },
   )
 
-  fastify.post<{ Body: { boardId: string; password?: string; userToken: string } }>(
+  fastify.post<{ Body: { boardId: string; password?: string } }>(
     '/api/boards/join',
-    { schema: { body: joinBoardSchema } },
+    { schema: { body: joinBoardSchema }, preHandler: [fastify.authenticate] },
     async (request, reply) => {
-      const useCase = new JoinBoardUseCase(options.boardRepo, options.memberRepo, options.userRepo)
+      const useCase = new JoinBoardUseCase(options.boardRepo, options.memberRepo)
 
       try {
-        const result = await useCase.execute(request.body)
+        const result = await useCase.execute({ boardId: request.body.boardId, password: request.body.password, userId: request.userId })
         return reply.status(201).send(result)
       } catch (err) {
         if (err instanceof AppError) {
