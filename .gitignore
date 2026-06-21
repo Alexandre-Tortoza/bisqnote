@@ -7,6 +7,9 @@ node_modules/
 /frontend/dist/
 /backend/dist/
 
+# Runtime uploads
+/backend/uploads/
+
 # TypeScript
 *.tsbuildinfo
 
