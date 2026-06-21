@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { ref, nextTick, watch, onMounted } from "vue";
+import { ref, nextTick, watch, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import AppButton from "@/components/ui/AppButton.vue";
 import { useUserStore } from "@/stores/user";
+import { useSessionStore } from "@/stores/session";
 import { useChat } from "../composables/useChat";
+import type { ChatMessage } from "../composables/useChat";
 
 const { t } = useI18n();
 const route = useRoute();
 const userStore = useUserStore();
+const sessionStore = useSessionStore();
 
 const { messages, status, error, connect, send } = useChat();
 
@@ -18,8 +21,10 @@ const messagesEndRef = ref<HTMLDivElement | null>(null);
 const boardId = route.params["id"] as string;
 
 onMounted(() => {
-  const token = userStore.user?.userToken;
-  if (token) connect(boardId, token);
+  const key = sessionStore.session?.boardKey;
+  if (key) {
+    connect(boardId, key);
+  }
 });
 
 function scrollToBottom() {
@@ -50,6 +55,31 @@ function formatTime(isoString: string): string {
 
 function avatarInitial(username: string): string {
   return username.charAt(0).toUpperCase();
+}
+
+const currentUsername = computed(() => userStore.user?.username);
+
+function isSelf(msg: ChatMessage): boolean {
+  return msg.username === currentUsername.value;
+}
+
+const USER_COLORS = [
+  "#2563eb",
+  "#16a34a",
+  "#9333ea",
+  "#d97706",
+  "#db2777",
+  "#0891b2",
+  "#dc2626",
+  "#7c3aed",
+];
+
+function getUserColor(username: string): string {
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = ((hash << 5) - hash + username.charCodeAt(i)) | 0;
+  }
+  return USER_COLORS[Math.abs(hash) % USER_COLORS.length]!;
 }
 </script>
 
@@ -104,22 +134,30 @@ function avatarInitial(username: string): string {
       </div>
 
       <!-- Messages -->
-      <div v-for="msg in messages" :key="msg.id" class="flex items-start gap-3">
+      <div
+        v-for="msg in messages"
+        :key="msg.id"
+        :class="['flex items-start gap-3', isSelf(msg) ? 'flex-row-reverse' : '']"
+      >
         <!-- Avatar -->
         <div
-          class="shrink-0 w-8 h-8 border-2 border-nb-border bg-nb-accent text-white font-mono text-xs font-bold flex items-center justify-center shadow-[var(--nb-shadow-sm)]"
+          class="shrink-0 w-8 h-8 border-2 border-nb-border text-white font-mono text-xs font-bold flex items-center justify-center shadow-[var(--nb-shadow-sm)]"
+          :style="{ backgroundColor: getUserColor(msg.username) }"
         >
           {{ avatarInitial(msg.username) }}
         </div>
 
         <!-- Bubble -->
-        <div class="flex flex-col gap-1 min-w-0">
-          <div class="flex items-baseline gap-2">
+        <div :class="['flex flex-col gap-1 min-w-0', isSelf(msg) ? 'items-end' : '']">
+          <div :class="['flex items-baseline gap-2', isSelf(msg) ? 'flex-row-reverse' : '']">
             <span class="font-mono text-xs font-bold text-nb-text">{{ msg.username }}</span>
             <span class="font-mono text-xs text-nb-muted">{{ formatTime(msg.createdAt) }}</span>
           </div>
           <div
-            class="border-2 border-nb-border bg-nb-surface px-3 py-2 shadow-[var(--nb-shadow-sm)] font-mono text-sm text-nb-text break-words"
+            :class="[
+              'border-2 border-nb-border px-3 py-2 shadow-[var(--nb-shadow-sm)] font-mono text-sm break-words',
+              isSelf(msg) ? 'bg-nb-accent text-white' : 'bg-nb-surface text-nb-text',
+            ]"
           >
             {{ msg.text }}
           </div>
@@ -132,7 +170,7 @@ function avatarInitial(username: string): string {
 
     <!-- Input bar -->
     <div
-      class="border-t-2 border-nb-border px-4 py-4 flex gap-3 items-center bg-nb-surface shrink-0"
+      class="border-t-2 border-nb-border px-4 py-[0.83rem] flex gap-3 items-center bg-nb-surface shrink-0"
     >
       <textarea
         v-model="inputText"

@@ -1,4 +1,5 @@
 import { ref, onUnmounted } from 'vue'
+import { importKeyFromBase64, encryptContent, decryptContent } from '@/utils/crypto'
 
 export interface ChatMessage {
   id: string
@@ -15,7 +16,7 @@ function toWsUrl(apiBase: string): string {
   return apiBase.replace(/^http/, 'ws')
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 /**
  * Manages a WebSocket connection to the board chat channel.
@@ -27,21 +28,26 @@ export function useChat() {
   const error = ref<string | null>(null)
 
   let socket: WebSocket | null = null
+  let cryptoKey: CryptoKey | null = null
 
-  function connect(boardId: string, userToken: string) {
+  async function connect(boardId: string, boardKey: string) {
     if (socket && socket.readyState === WebSocket.OPEN) return
 
     status.value = 'connecting'
     error.value = null
 
+    try {
+      cryptoKey = await importKeyFromBase64(boardKey)
+    } catch {
+      error.value = 'Failed to initialize encryption key'
+      status.value = 'error'
+      return
+    }
+
     const url = `${toWsUrl(API_BASE)}/api/boards/${boardId}/chat`
     socket = new WebSocket(url)
 
-    socket.onopen = () => {
-      socket!.send(JSON.stringify({ type: 'auth', userToken }))
-    }
-
-    socket.onmessage = (event) => {
+    socket.onmessage = async (event) => {
       let msg: Record<string, unknown>
       try {
         msg = JSON.parse(event.data as string) as Record<string, unknown>
@@ -49,12 +55,29 @@ export function useChat() {
         return
       }
 
+      const key = cryptoKey
+      if (!key) return
+
       if (msg['type'] === 'ready') {
         status.value = 'ready'
       } else if (msg['type'] === 'history') {
-        messages.value = (msg['messages'] as ChatMessage[]) ?? []
+        const rawMessages = (msg['messages'] as Array<Record<string, unknown>>) ?? []
+        messages.value = await Promise.all(
+          rawMessages.map(async (raw) => {
+            if (raw['text']) {
+              const decrypted = await decryptContent(key, raw['text'] as string)
+              raw['text'] = decrypted
+            }
+            return raw as unknown as ChatMessage
+          }),
+        )
       } else if (msg['type'] === 'message') {
-        messages.value = [...messages.value, msg as unknown as ChatMessage]
+        const raw = msg as unknown as Record<string, unknown>
+        if (raw['text']) {
+          const decrypted = await decryptContent(key, raw['text'] as string)
+          raw['text'] = decrypted
+        }
+        messages.value = [...messages.value, raw as unknown as ChatMessage]
       } else if (msg['type'] === 'error') {
         error.value = (msg['message'] as string) ?? 'Chat error'
         status.value = 'error'
@@ -74,11 +97,12 @@ export function useChat() {
     }
   }
 
-  function send(text: string) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return
+  async function send(text: string) {
+    if (!socket || socket.readyState !== WebSocket.OPEN || !cryptoKey) return
     const trimmed = text.trim()
     if (!trimmed) return
-    socket.send(JSON.stringify({ type: 'message', text: trimmed }))
+    const encryptedContent = await encryptContent(cryptoKey, trimmed)
+    socket.send(JSON.stringify({ type: 'message', encryptedContent }))
   }
 
   function disconnect() {
