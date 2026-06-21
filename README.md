@@ -6,6 +6,10 @@ BisqNote é uma plataforma de colaboração em equipe que prioriza **privacidade
 
 ---
 
+<img src="https://github.com/Alexandre-Tortoza/bisqnote/blob/main/bisqnote.gif" alt="bisqnote" />
+
+---
+
 ## O problema
 
 Ferramentas de colaboração como Notion, Trello, Miro e Google Workspace exigem cadastro, armazenam seus dados no servidor e os retêm indefinidamente. Isso significa que:
