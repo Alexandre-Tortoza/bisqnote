@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useUserStore } from '@/stores/user'
-import { useCalendar } from '../composables/useCalendar'
+import { useCalendar, type CalendarCellItem } from '../composables/useCalendar'
+import { useKanban } from '@/features/board/kanban'
 import CalendarGrid from '../components/CalendarGrid.vue'
 import EventModal from '../components/EventModal.vue'
 import type { CalendarEvent } from '../composables/useCalendar'
+import { useSessionStore } from '@/stores/session'
 
 const { t } = useI18n()
 const route = useRoute()
-const userStore = useUserStore()
-
+const router = useRouter()
+const sessionStore = useSessionStore()
 const { events, notifications, status, error, connect, createEvent, updateEvent, deleteEvent } = useCalendar()
+const { columns: kanbanColumns, connect: connectKanban } = useKanban()
 
 const boardId = route.params['id'] as string
 
@@ -20,10 +22,46 @@ const isModalOpen = ref(false)
 const activeEvent = ref<CalendarEvent | null>(null)
 const defaultDate = ref<string | undefined>(undefined)
 
-onMounted(() => {
-  const token = userStore.user?.userToken
-  if (token) connect(boardId, token)
+const calendarItems = computed<CalendarCellItem[]>(() => {
+  const items: CalendarCellItem[] = events.value.map((e) => ({
+    id: e.id,
+    title: e.title,
+    startAt: e.startAt,
+    source: 'event' as const,
+  }))
+  for (const col of kanbanColumns.value) {
+    for (const task of col.tasks) {
+      if (task.dueDate) {
+        items.push({
+          id: `task-${task.id}`,
+          title: task.title,
+          startAt: task.dueDate,
+          source: 'kanban' as const,
+        })
+      }
+    }
+  }
+  items.sort((a, b) => a.startAt.localeCompare(b.startAt))
+  return items
 })
+
+onMounted(() => {
+  const key = sessionStore.session?.boardKey
+  console.log('[CalendarView] mounted, boardId:', boardId, 'hasKey:', !!key)
+  if (key) {
+    connect(boardId, key)
+    connectKanban(boardId, key)
+  }
+})
+
+function handleItemClick(item: CalendarCellItem) {
+  if (item.source === 'event') {
+    const ev = events.value.find((e) => e.id === item.id)
+    if (ev) openEditModal(ev)
+  } else {
+    router.push(`/board/${boardId}/kanban`)
+  }
+}
 
 function openCreateModal(date: string) {
   activeEvent.value = null
@@ -125,10 +163,10 @@ function handleModalDelete() {
     <!-- Calendar grid -->
     <CalendarGrid
       v-else-if="status === 'ready'"
-      :events="events"
+      :items="calendarItems"
       class="flex-1 min-h-0"
       @day-click="openCreateModal"
-      @event-click="openEditModal"
+      @item-click="handleItemClick"
     />
 
     <!-- Event Modal -->

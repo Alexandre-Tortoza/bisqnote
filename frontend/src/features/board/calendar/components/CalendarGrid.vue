@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { CalendarEvent } from '../composables/useCalendar'
+import type { CalendarCellItem } from '../composables/useCalendar'
 
 const { t } = useI18n()
 
 const props = defineProps<{
-  events: CalendarEvent[]
+  items: CalendarCellItem[]
 }>()
 
 const emit = defineEmits<{
   dayClick: [date: string]
-  eventClick: [event: CalendarEvent]
+  itemClick: [item: CalendarCellItem]
 }>()
 
 const today = new Date()
@@ -41,7 +41,7 @@ interface CalendarDay {
   day: number
   isCurrentMonth: boolean
   isToday: boolean
-  events: CalendarEvent[]
+  items: CalendarCellItem[]
 }
 
 const calendarDays = computed((): CalendarDay[][] => {
@@ -86,7 +86,7 @@ function makeDay(date: Date, isCurrentMonth: boolean): CalendarDay {
     day: date.getDate(),
     isCurrentMonth,
     isToday: dateStr === todayStr,
-    events: props.events.filter((e) => e.startAt.slice(0, 10) === dateStr),
+    items: props.items.filter((item) => item.startAt.slice(0, 10) === dateStr),
   }
 }
 
@@ -112,7 +112,8 @@ function nextMonth() {
   }
 }
 
-function eventChipColor(index: number): string {
+function chipClass(item: CalendarCellItem, index: number): string {
+  if (item.source === 'kanban') return 'bg-amber-600'
   const colors = [
     'bg-blue-500',
     'bg-green-500',
@@ -162,42 +163,42 @@ function eventChipColor(index: number): string {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(week, wi) in calendarDays" :key="wi" class="h-24">
+          <tr v-for="(week, wi) in calendarDays" :key="wi" class="h-auto">
             <td
               v-for="cell in week"
               :key="cell.date"
-              class="border border-nb-border p-1 align-top cursor-pointer hover:bg-nb-surface transition-colors"
+              class="border border-nb-border px-1 pt-0.5 align-top cursor-pointer hover:bg-nb-surface transition-colors"
               :class="{ 'opacity-40': !cell.isCurrentMonth }"
               @click="emit('dayClick', cell.date)"
             >
               <!-- Day number -->
               <div
-                class="font-mono text-xs font-bold mb-1"
+                class="font-mono text-[11px] font-bold leading-tight"
                 :class="
                   cell.isToday
-                    ? 'text-nb-bg bg-nb-text rounded-full w-5 h-5 flex items-center justify-center'
+                    ? 'text-nb-bg bg-nb-text rounded-full w-4 h-4 flex items-center justify-center'
                     : 'text-nb-text'
                 "
               >
                 {{ cell.day }}
               </div>
 
-              <!-- Events chips -->
-              <div class="flex flex-col gap-0.5">
+              <!-- Items chips -->
+              <div class="flex flex-col gap-px mt-px">
                 <div
-                  v-for="(ev, idx) in cell.events.slice(0, 3)"
-                  :key="ev.id"
-                  :class="['text-white font-mono text-[10px] px-1 rounded truncate cursor-pointer', eventChipColor(idx)]"
-                  :title="ev.title"
-                  @click.stop="emit('eventClick', ev)"
+                  v-for="(item, idx) in cell.items.slice(0, 3)"
+                  :key="item.id"
+                  :class="['text-white font-mono text-[9px] px-0.5 rounded truncate cursor-pointer', chipClass(item, idx)]"
+                  :title="item.title + (item.source === 'kanban' ? ' (task)' : '')"
+                  @click.stop="emit('itemClick', item)"
                 >
-                  {{ ev.title }}
+                  {{ item.title }}
                 </div>
                 <div
-                  v-if="cell.events.length > 3"
-                  class="font-mono text-[10px] text-nb-muted"
+                  v-if="cell.items.length > 3"
+                  class="font-mono text-[9px] text-nb-muted"
                 >
-                  +{{ cell.events.length - 3 }} {{ t('calendar.more') }}
+                  +{{ cell.items.length - 3 }} {{ t('calendar.more') }}
                 </div>
               </div>
             </td>

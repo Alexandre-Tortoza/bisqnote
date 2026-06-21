@@ -1,4 +1,5 @@
 import { ref, onUnmounted } from 'vue'
+import { importKeyFromBase64, encryptContent, decryptContent } from '@/utils/crypto'
 
 export interface CalendarEvent {
   id: string
@@ -14,6 +15,13 @@ export interface CalendarEvent {
   updatedAt: string
 }
 
+export interface CalendarCellItem {
+  id: string
+  title: string
+  startAt: string
+  source: 'event' | 'kanban'
+}
+
 export interface CalendarNotification {
   eventId: string
   title: string
@@ -26,7 +34,7 @@ function toWsUrl(apiBase: string): string {
   return apiBase.replace(/^http/, 'ws')
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 /**
  * Computes in-app notifications from the list of events, based on today's date
@@ -43,11 +51,9 @@ export function computeNotifications(events: CalendarEvent[]): CalendarNotificat
     start.setHours(0, 0, 0, 0)
     const daysUntil = Math.ceil((start.getTime() - today.getTime()) / 86_400_000)
 
-    if (daysUntil < 0) return [] // event already passed
-    if (daysUntil > event.notifyStartDaysBefore) return [] // notification window not open yet
+    if (daysUntil < 0) return []
+    if (daysUntil > event.notifyStartDaysBefore) return []
 
-    // notifyRepeatDaily: show every day within the window
-    // !notifyRepeatDaily: show only on the exact first day of the window
     if (!event.notifyRepeatDaily && daysUntil !== event.notifyStartDaysBefore) return []
 
     return [{ eventId: event.id, title: event.title, daysUntil }]
@@ -65,8 +71,9 @@ export function useCalendar() {
   const error = ref<string | null>(null)
 
   let socket: WebSocket | null = null
+  let cryptoKey: CryptoKey | null = null
 
-  function connect(boardId: string, userToken: string) {
+  async function connect(boardId: string, boardKey: string) {
     if (socket && socket.readyState === WebSocket.OPEN) return
 
     status.value = 'connecting'
@@ -74,37 +81,54 @@ export function useCalendar() {
     events.value = []
     notifications.value = []
 
-    const url = `${toWsUrl(API_BASE)}/api/boards/${boardId}/calendar`
-    socket = new WebSocket(url)
-
-    socket.onopen = () => {
-      socket!.send(JSON.stringify({ type: 'auth', userToken }))
+    try {
+      cryptoKey = await importKeyFromBase64(boardKey)
+    } catch (err) {
+      console.error('[Calendar] Crypto key import failed:', err)
+      error.value = 'Failed to initialize encryption key'
+      status.value = 'error'
+      return
     }
 
-    socket.onmessage = (event) => {
+    const url = `${toWsUrl(API_BASE)}/api/boards/${boardId}/calendar`
+    console.log('[Calendar] Connecting to:', url, 'API_BASE:', API_BASE)
+    socket = new WebSocket(url)
+
+    socket.onmessage = async (event) => {
       let msg: Record<string, unknown>
       try {
         msg = JSON.parse(event.data as string) as Record<string, unknown>
       } catch {
+        console.warn('[Calendar] Failed to parse message:', event.data)
+        return
+      }
+
+      const key = cryptoKey
+      if (!key) {
+        console.warn('[Calendar] No crypto key available')
         return
       }
 
       const type = msg['type'] as string
+      console.log('[Calendar] Received:', type, type === 'error' ? msg : '')
 
       if (type === 'ready') {
         status.value = 'ready'
       } else if (type === 'board-state') {
-        const incoming = (msg['events'] as CalendarEvent[]) ?? []
-        events.value = incoming
-        notifications.value = computeNotifications(incoming)
+        const raw = (msg['events'] as Array<Record<string, unknown>>) ?? []
+        console.log('[Calendar] Board-state events count:', raw.length)
+        events.value = await Promise.all(raw.map((e) => decryptEventContent(key, e)))
+        notifications.value = computeNotifications(events.value)
       } else if (type === 'event:created') {
-        const newEvent = msg['event'] as CalendarEvent
+        const raw = msg['event'] as Record<string, unknown>
+        const newEvent = await decryptEventContent(key, raw)
         events.value = [...events.value, newEvent].sort(
           (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
         )
         notifications.value = computeNotifications(events.value)
       } else if (type === 'event:updated') {
-        const updated = msg['event'] as CalendarEvent
+        const raw = msg['event'] as Record<string, unknown>
+        const updated = await decryptEventContent(key, raw)
         events.value = events.value
           .map((e) => (e.id === updated.id ? updated : e))
           .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
@@ -114,17 +138,21 @@ export function useCalendar() {
         events.value = events.value.filter((e) => e.id !== eventId)
         notifications.value = computeNotifications(events.value)
       } else if (type === 'error') {
-        error.value = (msg['message'] as string) ?? 'Calendar error'
+        const msgText = (msg['message'] as string) ?? 'Calendar error'
+        console.error('[Calendar] Error from server:', msgText)
+        error.value = msgText
         status.value = 'error'
       }
     }
 
-    socket.onerror = () => {
+    socket.onerror = (event) => {
+      console.error('[Calendar] Socket error event:', event)
       error.value = 'Connection failed'
       status.value = 'error'
     }
 
-    socket.onclose = () => {
+    socket.onclose = (event) => {
+      console.log('[Calendar] Socket closed, code:', event.code, 'reason:', event.reason, 'wasClean:', event.wasClean)
       if (status.value !== 'error') {
         status.value = 'closed'
       }
@@ -133,11 +161,15 @@ export function useCalendar() {
   }
 
   function sendMessage(msg: Record<string, unknown>) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      console.warn('[Calendar] Cannot send, socket not open')
+      return
+    }
+    console.log('[Calendar] Sending:', msg.type)
     socket.send(JSON.stringify(msg))
   }
 
-  function createEvent(data: {
+  async function createEvent(data: {
     title: string
     startAt: string
     endAt?: string | null
@@ -145,10 +177,22 @@ export function useCalendar() {
     notifyStartDaysBefore?: number
     notifyRepeatDaily?: boolean
   }) {
-    sendMessage({ type: 'event:create', ...data })
+    if (!cryptoKey) return
+    const encryptedContent = await encryptContent(
+      cryptoKey,
+      JSON.stringify({ title: data.title, description: data.description ?? null }),
+    )
+    sendMessage({
+      type: 'event:create',
+      encryptedContent,
+      startAt: data.startAt,
+      endAt: data.endAt ?? null,
+      notifyStartDaysBefore: data.notifyStartDaysBefore ?? 0,
+      notifyRepeatDaily: data.notifyRepeatDaily ?? false,
+    })
   }
 
-  function updateEvent(
+  async function updateEvent(
     eventId: string,
     data: {
       title?: string
@@ -159,7 +203,19 @@ export function useCalendar() {
       notifyRepeatDaily?: boolean
     },
   ) {
-    sendMessage({ type: 'event:update', eventId, ...data })
+    if (!cryptoKey) return
+    const payload: Record<string, unknown> = { type: 'event:update', eventId }
+    if (data.title !== undefined || data.description !== undefined) {
+      payload.encryptedContent = await encryptContent(
+        cryptoKey,
+        JSON.stringify({ title: data.title, description: data.description }),
+      )
+    }
+    if (data.startAt !== undefined) payload.startAt = data.startAt
+    if (data.endAt !== undefined) payload.endAt = data.endAt
+    if (data.notifyStartDaysBefore !== undefined) payload.notifyStartDaysBefore = data.notifyStartDaysBefore
+    if (data.notifyRepeatDaily !== undefined) payload.notifyRepeatDaily = data.notifyRepeatDaily
+    sendMessage(payload)
   }
 
   function deleteEvent(eventId: string) {
@@ -167,11 +223,15 @@ export function useCalendar() {
   }
 
   function disconnect() {
+    console.log('[Calendar] disconnect() called')
     socket?.close()
     socket = null
   }
 
-  onUnmounted(disconnect)
+  onUnmounted(() => {
+    console.log('[Calendar] component unmounted, disconnecting')
+    disconnect()
+  })
 
   return {
     events,
@@ -184,4 +244,19 @@ export function useCalendar() {
     updateEvent,
     deleteEvent,
   }
+}
+
+async function decryptEventContent(key: CryptoKey, raw: Record<string, unknown>): Promise<CalendarEvent> {
+  if (raw['encryptedContent']) {
+    try {
+      const decrypted = await decryptContent(key, raw['encryptedContent'] as string)
+      const data = JSON.parse(decrypted) as Record<string, unknown>
+      raw['title'] = (data['title'] as string) ?? raw['title']
+      raw['description'] = (data['description'] as string | null) ?? null
+      delete raw['encryptedContent']
+    } catch (err) {
+      console.error('[Calendar] Failed to decrypt event:', raw.id, err)
+    }
+  }
+  return raw as unknown as CalendarEvent
 }
