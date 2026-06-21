@@ -22,11 +22,11 @@
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/websocket": "^11.2.0",
     "bcryptjs": "^3.0.3",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^5.8.2",
     "fastify-plugin": "^5.1.0",
     "nodemailer": "^8.0.1",
-    "postgres": "^3.4.8"
+    "postgres": "^3.4.9"
   },
   "packageManager": "pnpm@10.28.2",
   "devDependencies": {
@@ -34,7 +34,7 @@
     "@types/node": "^25.3.5",
     "@types/nodemailer": "^7.0.11",
     "@vitest/coverage-v8": "^4.0.18",
-    "drizzle-kit": "^0.31.9",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.4",
     "jiti": "^2.6.1",
     "tsx": "^4.21.0",
