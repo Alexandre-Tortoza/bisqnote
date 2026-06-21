@@ -2,6 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useFiles } from '../composables/useFiles'
 import type { BoardFile } from '../composables/useFiles'
 
+const wsInstances: FakeWebSocket[] = []
+
+class FakeWebSocket {
+  static OPEN = 1
+  readyState = FakeWebSocket.OPEN
+  onmessage: ((event: MessageEvent) => void) | null = null
+  onerror: (() => void) | null = null
+  onclose: (() => void) | null = null
+  send = vi.fn()
+  close = vi.fn()
+
+  constructor(public readonly url: string) {
+    wsInstances.push(this)
+  }
+}
+
 vi.mock('@/services/api', () => ({
   api: {
     post: vi.fn(),
@@ -37,6 +53,8 @@ const makeLink = (overrides: Partial<BoardFile> = {}): BoardFile =>
 describe('useFiles', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    wsInstances.length = 0
+    vi.stubGlobal('WebSocket', FakeWebSocket)
   })
 
   it('filtered returns all items when search is empty', () => {
@@ -91,16 +109,19 @@ describe('useFiles', () => {
     expect(error.value).toBe('Network error')
   })
 
-  it('addLink prepends to files', async () => {
-    const { api } = await import('@/services/api')
-    vi.mocked(api.post).mockResolvedValueOnce(makeLink())
-
-    const { files, addLink } = useFiles()
+  it('addLink sends a WebSocket create message', async () => {
+    const { files, addLink, connect } = useFiles()
     files.value = [makeFile()]
+
+    await connect('board-1')
+    wsInstances[0]!.onmessage?.({ data: JSON.stringify({ type: 'ready' }) } as MessageEvent)
     await addLink('board-1', 'Figma', 'https://figma.com')
 
-    expect(files.value).toHaveLength(2)
-    expect(files.value[0]!.type).toBe('link')
+    expect(wsInstances[0]!.send).toHaveBeenCalledWith(JSON.stringify({
+      type: 'link:create',
+      name: 'Figma',
+      url: 'https://figma.com',
+    }))
   })
 
   it('deleteFile removes by id from files', async () => {
