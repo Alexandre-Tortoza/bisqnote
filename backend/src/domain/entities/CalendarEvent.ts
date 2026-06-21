@@ -4,8 +4,7 @@ export interface CalendarEventEntity {
   boardId: string
   /** Member ID of the creator, or null if the member was removed. */
   createdBy: string | null
-  title: string
-  description: string | null
+  encryptedContent: string
   /** ISO datetime string. */
   startAt: string
   /** ISO datetime string, or null if no end time. */

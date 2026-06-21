@@ -4,15 +4,6 @@ import type { ICalendarEventRepository } from '../../domain/repositories/ICalend
 import type { CalendarEventEntity } from '../../domain/entities/CalendarEvent.js'
 import { calendarEvents } from '../db/schema/index.js'
 
-interface EventContent {
-  title: string
-  description: string | null
-  startAt: string
-  endAt: string | null
-  notifyStartDaysBefore: number
-  notifyRepeatDaily: boolean
-}
-
 /** Drizzle ORM implementation of ICalendarEventRepository. */
 export class DrizzleCalendarEventRepository implements ICalendarEventRepository {
   constructor(private readonly db: PostgresJsDatabase) {}
@@ -20,8 +11,7 @@ export class DrizzleCalendarEventRepository implements ICalendarEventRepository 
   async create(data: {
     boardId: string
     createdBy: string | null
-    title: string
-    description?: string | null
+    encryptedContent: string
     startAt: string
     endAt?: string | null
     notifyStartDaysBefore?: number
@@ -32,14 +22,11 @@ export class DrizzleCalendarEventRepository implements ICalendarEventRepository 
       .values({
         board_id: data.boardId,
         created_by: data.createdBy,
-        encrypted_content: JSON.stringify({
-          title: data.title,
-          description: data.description ?? null,
-          startAt: data.startAt,
-          endAt: data.endAt ?? null,
-          notifyStartDaysBefore: data.notifyStartDaysBefore ?? 0,
-          notifyRepeatDaily: data.notifyRepeatDaily ?? false,
-        }),
+        encrypted_content: data.encryptedContent,
+        start_at: new Date(data.startAt),
+        end_at: data.endAt ? new Date(data.endAt) : null,
+        notify_start_days_before: data.notifyStartDaysBefore ?? 0,
+        notify_repeat_daily: data.notifyRepeatDaily ?? false,
       })
       .returning()
 
@@ -68,36 +55,35 @@ export class DrizzleCalendarEventRepository implements ICalendarEventRepository 
   async update(
     id: string,
     data: {
-      title?: string
-      description?: string | null
+      encryptedContent?: string
       startAt?: string
       endAt?: string | null
       notifyStartDaysBefore?: number
       notifyRepeatDaily?: boolean
     },
   ): Promise<CalendarEventEntity> {
-    const existing = await this.db
-      .select()
-      .from(calendarEvents)
-      .where(eq(calendarEvents.id, id))
-      .then((rows) => rows[0]!)
-
-    const current = JSON.parse(existing.encrypted_content) as EventContent
-
-    const newContent: EventContent = {
-      title: data.title !== undefined ? data.title : current.title,
-      description: data.description !== undefined ? data.description : current.description,
-      startAt: data.startAt !== undefined ? data.startAt : current.startAt,
-      endAt: data.endAt !== undefined ? data.endAt : current.endAt,
-      notifyStartDaysBefore:
-        data.notifyStartDaysBefore !== undefined ? data.notifyStartDaysBefore : current.notifyStartDaysBefore,
-      notifyRepeatDaily:
-        data.notifyRepeatDaily !== undefined ? data.notifyRepeatDaily : current.notifyRepeatDaily,
+    const updateValues: Partial<typeof calendarEvents.$inferInsert> = {
+      updated_at: new Date(),
+    }
+    if (data.encryptedContent !== undefined) {
+      updateValues.encrypted_content = data.encryptedContent
+    }
+    if (data.startAt !== undefined) {
+      updateValues.start_at = new Date(data.startAt)
+    }
+    if (data.endAt !== undefined) {
+      updateValues.end_at = data.endAt ? new Date(data.endAt) : null
+    }
+    if (data.notifyStartDaysBefore !== undefined) {
+      updateValues.notify_start_days_before = data.notifyStartDaysBefore
+    }
+    if (data.notifyRepeatDaily !== undefined) {
+      updateValues.notify_repeat_daily = data.notifyRepeatDaily
     }
 
     const [row] = await this.db
       .update(calendarEvents)
-      .set({ encrypted_content: JSON.stringify(newContent), updated_at: new Date() })
+      .set(updateValues)
       .where(eq(calendarEvents.id, id))
       .returning()
 
@@ -109,17 +95,15 @@ export class DrizzleCalendarEventRepository implements ICalendarEventRepository 
   }
 
   private toEntity(row: typeof calendarEvents.$inferSelect): CalendarEventEntity {
-    const content = JSON.parse(row.encrypted_content) as EventContent
     return {
       id: row.id,
       boardId: row.board_id,
       createdBy: row.created_by,
-      title: content.title,
-      description: content.description,
-      startAt: content.startAt,
-      endAt: content.endAt,
-      notifyStartDaysBefore: content.notifyStartDaysBefore,
-      notifyRepeatDaily: content.notifyRepeatDaily,
+      encryptedContent: row.encrypted_content,
+      startAt: row.start_at.toISOString(),
+      endAt: row.end_at ? row.end_at.toISOString() : null,
+      notifyStartDaysBefore: row.notify_start_days_before,
+      notifyRepeatDaily: row.notify_repeat_daily,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }

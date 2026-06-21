@@ -5,8 +5,7 @@ export interface ICalendarEventRepository {
   create(data: {
     boardId: string
     createdBy: string | null
-    title: string
-    description?: string | null
+    encryptedContent: string
     startAt: string
     endAt?: string | null
     notifyStartDaysBefore?: number
@@ -21,8 +20,7 @@ export interface ICalendarEventRepository {
   update(
     id: string,
     data: {
-      title?: string
-      description?: string | null
+      encryptedContent?: string
       startAt?: string
       endAt?: string | null
       notifyStartDaysBefore?: number

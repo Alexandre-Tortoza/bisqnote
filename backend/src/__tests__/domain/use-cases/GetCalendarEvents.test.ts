@@ -1,20 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { IUserRepository } from '../../../domain/repositories/IUserRepository.js'
 import type { IMemberRepository } from '../../../domain/repositories/IMemberRepository.js'
 import type { ICalendarEventRepository } from '../../../domain/repositories/ICalendarEventRepository.js'
-import type { UserEntity } from '../../../domain/entities/User.js'
 import type { BoardMemberEntity } from '../../../domain/entities/BoardMember.js'
 import type { CalendarEventEntity } from '../../../domain/entities/CalendarEvent.js'
 import { GetCalendarEventsUseCase } from '../../../domain/use-cases/GetCalendarEvents.js'
-
-const makeUser = (overrides: Partial<UserEntity> = {}): UserEntity => ({
-  id: 'user-1',
-  username: 'alice',
-  passwordHash: 'hash',
-  tokenHash: 'sha256token',
-  createdAt: new Date(),
-  ...overrides,
-})
 
 const makeMember = (overrides: Partial<BoardMemberEntity> = {}): BoardMemberEntity => ({
   id: 'member-1',
@@ -30,8 +19,7 @@ const makeEvent = (overrides: Partial<CalendarEventEntity> = {}): CalendarEventE
   id: 'event-1',
   boardId: 'board-1',
   createdBy: 'member-1',
-  title: 'Sprint Review',
-  description: null,
+  encryptedContent: 'encrypted-event',
   startAt: '2026-04-01T10:00:00.000Z',
   endAt: null,
   notifyStartDaysBefore: 0,
@@ -42,17 +30,10 @@ const makeEvent = (overrides: Partial<CalendarEventEntity> = {}): CalendarEventE
 })
 
 describe('GetCalendarEventsUseCase', () => {
-  let userRepo: IUserRepository
   let memberRepo: IMemberRepository
   let calendarRepo: ICalendarEventRepository
 
   beforeEach(() => {
-    userRepo = {
-      create: vi.fn(),
-      findByUsername: vi.fn(),
-      findByTokenHash: vi.fn().mockResolvedValue(makeUser()),
-      updateTokenHash: vi.fn(),
-    }
     memberRepo = {
       create: vi.fn(),
       findById: vi.fn(),
@@ -70,8 +51,8 @@ describe('GetCalendarEventsUseCase', () => {
   })
 
   it('returns all calendar events for the board', async () => {
-    const useCase = new GetCalendarEventsUseCase(userRepo, memberRepo, calendarRepo)
-    const result = await useCase.execute({ userToken: 'token', boardId: 'board-1' })
+    const useCase = new GetCalendarEventsUseCase(memberRepo, calendarRepo)
+    const result = await useCase.execute({ userId: 'user-1', boardId: 'board-1' })
 
     expect(result).toHaveLength(1)
     expect(result[0]!.id).toBe('event-1')
@@ -81,27 +62,18 @@ describe('GetCalendarEventsUseCase', () => {
   it('returns empty array when board has no events', async () => {
     vi.mocked(calendarRepo.findByBoardId).mockResolvedValue([])
 
-    const useCase = new GetCalendarEventsUseCase(userRepo, memberRepo, calendarRepo)
-    const result = await useCase.execute({ userToken: 'token', boardId: 'board-1' })
+    const useCase = new GetCalendarEventsUseCase(memberRepo, calendarRepo)
+    const result = await useCase.execute({ userId: 'user-1', boardId: 'board-1' })
 
     expect(result).toHaveLength(0)
-  })
-
-  it('throws INVALID_USER_TOKEN when token is invalid', async () => {
-    vi.mocked(userRepo.findByTokenHash).mockResolvedValue(null)
-
-    const useCase = new GetCalendarEventsUseCase(userRepo, memberRepo, calendarRepo)
-    await expect(
-      useCase.execute({ userToken: 'bad', boardId: 'board-1' }),
-    ).rejects.toMatchObject({ code: 'INVALID_USER_TOKEN' })
   })
 
   it('throws MEMBER_NOT_FOUND when user is not a board member', async () => {
     vi.mocked(memberRepo.findByUserAndBoard).mockResolvedValue(null)
 
-    const useCase = new GetCalendarEventsUseCase(userRepo, memberRepo, calendarRepo)
+    const useCase = new GetCalendarEventsUseCase(memberRepo, calendarRepo)
     await expect(
-      useCase.execute({ userToken: 'token', boardId: 'board-1' }),
+      useCase.execute({ userId: 'user-1', boardId: 'board-1' }),
     ).rejects.toMatchObject({ code: 'MEMBER_NOT_FOUND' })
   })
 })

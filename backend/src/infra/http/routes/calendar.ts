@@ -1,7 +1,5 @@
-import { createHash } from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import type { WebSocket } from '@fastify/websocket'
-import type { IUserRepository } from '../../../domain/repositories/IUserRepository.js'
 import type { IMemberRepository } from '../../../domain/repositories/IMemberRepository.js'
 import type { ICalendarEventRepository } from '../../../domain/repositories/ICalendarEventRepository.js'
 import { GetCalendarEventsUseCase } from '../../../domain/use-cases/GetCalendarEvents.js'
@@ -12,15 +10,13 @@ import { AppError } from '../../../domain/errors/AppError.js'
 import type { CalendarEventEntity } from '../../../domain/entities/CalendarEvent.js'
 
 interface CalendarRoutesOptions {
-  userRepo: IUserRepository
   memberRepo: IMemberRepository
   calendarRepo: ICalendarEventRepository
 }
 
 interface ConnInfo {
-  username: string
+  userId: string
   memberId: string
-  userToken: string
 }
 
 type OutboundMessage =
@@ -31,7 +27,6 @@ type OutboundMessage =
   | { type: 'event:deleted'; eventId: string }
   | { type: 'error'; message: string }
 
-/** Per-board WebSocket rooms: boardId → Map<socket, connection info>. */
 const rooms = new Map<string, Map<WebSocket, ConnInfo>>()
 
 function send(socket: WebSocket, msg: OutboundMessage) {
@@ -48,36 +43,82 @@ function broadcast(boardId: string, msg: OutboundMessage) {
   }
 }
 
-/** Calendar WebSocket routes. */
+/** Calendar WebSocket route — authenticates via JWT cookie on connection. */
 export async function calendarRoutes(fastify: FastifyInstance, options: CalendarRoutesOptions) {
-  const { userRepo, memberRepo, calendarRepo } = options
+  const { memberRepo, calendarRepo } = options
 
-  /**
-   * WebSocket endpoint: ws://host/api/boards/:id/calendar
-   *
-   * Client → Server:
-   *   { type: 'auth', userToken }
-   *   { type: 'event:create', title, startAt, endAt?, description?, notifyStartDaysBefore?, notifyRepeatDaily? }
-   *   { type: 'event:update', eventId, title?, description?, startAt?, endAt?, notifyStartDaysBefore?, notifyRepeatDaily? }
-   *   { type: 'event:delete', eventId }
-   *
-   * Server → Client (on auth):
-   *   { type: 'ready', username }
-   *   { type: 'board-state', events }
-   *
-   * Server → all (broadcast):
-   *   { type: 'event:created', event }
-   *   { type: 'event:updated', event }
-   *   { type: 'event:deleted', eventId }
-   */
   fastify.get<{ Params: { id: string } }>(
     '/api/boards/:id/calendar',
     { websocket: true },
     (socket, request) => {
       const boardId = request.params.id
       let connInfo: ConnInfo | null = null
+      let authResolve: (() => void) | null = null
+      const authReady = new Promise<void>((resolve) => { authResolve = resolve })
+
+      fastify.log.info({ boardId }, 'Calendar WS: new connection')
+
+      ;(async () => {
+        try {
+          const token = request.cookies?.['token']
+          if (!token) {
+            fastify.log.warn({ boardId }, 'Calendar WS: missing token')
+            throw new AppError('AUTH_FAILED', 'Missing authentication token')
+          }
+
+          let decoded: { userId: string; username: string }
+          try {
+            decoded = fastify.jwt.verify<{ userId: string; username: string }>(token)
+            fastify.log.info({ userId: decoded.userId, username: decoded.username }, 'Calendar WS: JWT verified')
+          } catch (jwtErr) {
+            const msg = jwtErr instanceof Error ? jwtErr.message : 'Invalid token'
+            fastify.log.warn({ boardId, err: jwtErr }, 'Calendar WS: JWT verification failed')
+            throw new AppError('AUTH_FAILED', msg)
+          }
+
+          const member = await memberRepo.findByUserAndBoard(decoded.userId, boardId)
+          if (!member) {
+            fastify.log.warn({ userId: decoded.userId, boardId }, 'Calendar WS: member not found')
+            throw new AppError('AUTH_FAILED', 'Not a member of this board')
+          }
+          fastify.log.info({ userId: decoded.userId, memberId: member.id }, 'Calendar WS: member found')
+
+          connInfo = { userId: decoded.userId, memberId: member.id }
+
+          if (!rooms.has(boardId)) rooms.set(boardId, new Map())
+          rooms.get(boardId)!.set(socket, connInfo)
+          fastify.log.info({ boardId }, 'Calendar WS: joined room')
+
+          send(socket, { type: 'ready', username: decoded.username })
+          fastify.log.info({ username: decoded.username }, 'Calendar WS: ready sent')
+
+          const getUseCase = new GetCalendarEventsUseCase(memberRepo, calendarRepo)
+          const events = await getUseCase.execute({ userId: decoded.userId, boardId })
+          fastify.log.info({ count: events.length }, 'Calendar WS: board-state loaded')
+          send(socket, { type: 'board-state', events })
+        } catch (err) {
+          let message: string
+          if (err instanceof AppError) {
+            message = err.message
+            fastify.log.warn({ boardId, message }, 'Calendar WS: AppError')
+          } else {
+            fastify.log.error(
+              { err: err instanceof Error ? { message: err.message, stack: err.stack, name: err.name } : err },
+              'Calendar WS: unexpected error',
+            )
+            message = 'Authentication failed'
+          }
+          send(socket, { type: 'error', message })
+          fastify.log.info({ message }, 'Calendar WS: error sent, closing socket')
+          socket.close()
+        }
+        authResolve!()
+      })()
 
       socket.on('message', async (raw: Buffer) => {
+        await authReady
+        if (!connInfo) return
+
         let msg: Record<string, unknown>
         try {
           msg = JSON.parse(raw.toString()) as Record<string, unknown>
@@ -85,66 +126,28 @@ export async function calendarRoutes(fastify: FastifyInstance, options: Calendar
           return
         }
 
-        if (!connInfo) {
-          if (msg['type'] !== 'auth' || typeof msg['userToken'] !== 'string') {
-            send(socket, { type: 'error', message: 'First message must be auth' })
-            socket.close()
-            return
-          }
-
-          try {
-            const userToken = msg['userToken'] as string
-            const tokenHash = createHash('sha256').update(userToken).digest('hex')
-            const user = await userRepo.findByTokenHash(tokenHash)
-            if (!user) throw new AppError('INVALID_USER_TOKEN', 'Invalid or expired user token')
-
-            const member = await memberRepo.findByUserAndBoard(user.id, boardId)
-            if (!member) throw new AppError('MEMBER_NOT_FOUND', 'User is not a member of this board')
-
-            connInfo = { username: user.username, memberId: member.id, userToken }
-
-            if (!rooms.has(boardId)) rooms.set(boardId, new Map())
-            rooms.get(boardId)!.set(socket, connInfo)
-
-            send(socket, { type: 'ready', username: user.username })
-
-            const getUseCase = new GetCalendarEventsUseCase(userRepo, memberRepo, calendarRepo)
-            const events = await getUseCase.execute({ userToken, boardId })
-            send(socket, { type: 'board-state', events })
-          } catch (err) {
-            const message = err instanceof AppError ? err.message : 'Authentication failed'
-            send(socket, { type: 'error', message })
-            socket.close()
-          }
-
-          return
-        }
-
-        // Authenticated — handle calendar commands
         try {
           const type = msg['type'] as string
 
           if (type === 'event:create') {
-            const useCase = new CreateCalendarEventUseCase(userRepo, memberRepo, calendarRepo)
+            const useCase = new CreateCalendarEventUseCase(memberRepo, calendarRepo)
             const event = await useCase.execute({
-              userToken: connInfo.userToken,
+              userId: connInfo.userId,
               boardId,
-              title: msg['title'] as string,
+              encryptedContent: msg['encryptedContent'] as string,
               startAt: msg['startAt'] as string,
               endAt: msg['endAt'] as string | null | undefined,
-              description: msg['description'] as string | null | undefined,
               notifyStartDaysBefore: msg['notifyStartDaysBefore'] as number | undefined,
               notifyRepeatDaily: msg['notifyRepeatDaily'] as boolean | undefined,
             })
             broadcast(boardId, { type: 'event:created', event })
           } else if (type === 'event:update') {
-            const useCase = new UpdateCalendarEventUseCase(userRepo, memberRepo, calendarRepo)
+            const useCase = new UpdateCalendarEventUseCase(memberRepo, calendarRepo)
             const event = await useCase.execute({
-              userToken: connInfo.userToken,
+              userId: connInfo.userId,
               boardId,
               eventId: msg['eventId'] as string,
-              title: msg['title'] as string | undefined,
-              description: msg['description'] as string | null | undefined,
+              encryptedContent: msg['encryptedContent'] as string | undefined,
               startAt: msg['startAt'] as string | undefined,
               endAt: msg['endAt'] as string | null | undefined,
               notifyStartDaysBefore: msg['notifyStartDaysBefore'] as number | undefined,
@@ -153,8 +156,8 @@ export async function calendarRoutes(fastify: FastifyInstance, options: Calendar
             broadcast(boardId, { type: 'event:updated', event })
           } else if (type === 'event:delete') {
             const eventId = msg['eventId'] as string
-            const useCase = new DeleteCalendarEventUseCase(userRepo, memberRepo, calendarRepo)
-            await useCase.execute({ userToken: connInfo.userToken, boardId, eventId })
+            const useCase = new DeleteCalendarEventUseCase(memberRepo, calendarRepo)
+            await useCase.execute({ userId: connInfo.userId, boardId, eventId })
             broadcast(boardId, { type: 'event:deleted', eventId })
           }
         } catch (err) {
@@ -164,6 +167,7 @@ export async function calendarRoutes(fastify: FastifyInstance, options: Calendar
       })
 
       socket.on('close', () => {
+        fastify.log.info({ boardId, hadConnInfo: !!connInfo }, 'Calendar WS: socket closed')
         if (connInfo) {
           const room = rooms.get(boardId)
           if (room) {
