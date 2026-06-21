@@ -1,25 +1,18 @@
-import { createHash } from 'node:crypto'
 import { AppError } from '../errors/AppError.js'
-import type { IUserRepository } from '../repositories/IUserRepository.js'
 import type { IMemberRepository } from '../repositories/IMemberRepository.js'
 import type { IKanbanColumnRepository } from '../repositories/IKanbanColumnRepository.js'
 
 /** Validates membership and deletes a kanban column (cascades to its tasks). */
 export class DeleteKanbanColumnUseCase {
   constructor(
-    private readonly userRepo: IUserRepository,
     private readonly memberRepo: IMemberRepository,
     private readonly columnRepo: IKanbanColumnRepository,
   ) {}
 
-  async execute(input: { userToken: string; boardId: string; columnId: string }): Promise<void> {
-    const { userToken, boardId, columnId } = input
+  async execute(input: { userId: string; boardId: string; columnId: string }): Promise<void> {
+    const { userId, boardId, columnId } = input
 
-    const tokenHash = createHash('sha256').update(userToken).digest('hex')
-    const user = await this.userRepo.findByTokenHash(tokenHash)
-    if (!user) throw new AppError('INVALID_USER_TOKEN', 'Invalid or expired user token')
-
-    const member = await this.memberRepo.findByUserAndBoard(user.id, boardId)
+    const member = await this.memberRepo.findByUserAndBoard(userId, boardId)
     if (!member) throw new AppError('MEMBER_NOT_FOUND', 'User is not a member of this board')
 
     const columns = await this.columnRepo.findByBoardId(boardId)

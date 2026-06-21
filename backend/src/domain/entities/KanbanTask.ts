@@ -6,12 +6,7 @@ export interface KanbanTaskEntity {
   /** Member ID of the assigned member, or null if unassigned. */
   assignedTo: string | null
   position: number
-  title: string
-  description: string | null
-  /** Effort estimate from 1 to 5, or null if not set. */
-  effort: number | null
-  /** ISO date string (YYYY-MM-DD), or null if no due date. */
-  dueDate: string | null
+  encryptedContent: string
   createdAt: Date
   updatedAt: Date
 }

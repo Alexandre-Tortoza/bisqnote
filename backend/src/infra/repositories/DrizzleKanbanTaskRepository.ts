@@ -4,13 +4,6 @@ import type { IKanbanTaskRepository } from '../../domain/repositories/IKanbanTas
 import type { KanbanTaskEntity } from '../../domain/entities/KanbanTask.js'
 import { kanbanTasks } from '../db/schema/index.js'
 
-interface TaskContent {
-  title: string
-  description: string | null
-  effort: number | null
-  dueDate: string | null
-}
-
 /** Drizzle ORM implementation of IKanbanTaskRepository. */
 export class DrizzleKanbanTaskRepository implements IKanbanTaskRepository {
   constructor(private readonly db: PostgresJsDatabase) {}
@@ -18,7 +11,7 @@ export class DrizzleKanbanTaskRepository implements IKanbanTaskRepository {
   async create(data: {
     columnId: string
     boardId: string
-    title: string
+    encryptedContent: string
     position: number
   }): Promise<KanbanTaskEntity> {
     const [row] = await this.db
@@ -27,12 +20,7 @@ export class DrizzleKanbanTaskRepository implements IKanbanTaskRepository {
         column_id: data.columnId,
         board_id: data.boardId,
         position: data.position,
-        encrypted_content: JSON.stringify({
-          title: data.title,
-          description: null,
-          effort: null,
-          dueDate: null,
-        }),
+        encrypted_content: data.encryptedContent,
       })
       .returning()
 
@@ -61,31 +49,15 @@ export class DrizzleKanbanTaskRepository implements IKanbanTaskRepository {
   async update(
     id: string,
     data: {
-      title?: string
-      description?: string | null
-      effort?: number | null
-      dueDate?: string | null
+      encryptedContent?: string
       assignedTo?: string | null
     },
   ): Promise<KanbanTaskEntity> {
-    const existing = await this.db
-      .select()
-      .from(kanbanTasks)
-      .where(eq(kanbanTasks.id, id))
-      .then((rows) => rows[0]!)
-
-    const currentContent = JSON.parse(existing.encrypted_content) as TaskContent
-
-    const newContent: TaskContent = {
-      title: data.title !== undefined ? data.title : currentContent.title,
-      description: data.description !== undefined ? data.description : currentContent.description,
-      effort: data.effort !== undefined ? data.effort : currentContent.effort,
-      dueDate: data.dueDate !== undefined ? data.dueDate : currentContent.dueDate,
-    }
-
     const updateValues: Partial<typeof kanbanTasks.$inferInsert> = {
-      encrypted_content: JSON.stringify(newContent),
       updated_at: new Date(),
+    }
+    if (data.encryptedContent !== undefined) {
+      updateValues.encrypted_content = data.encryptedContent
     }
     if (data.assignedTo !== undefined) {
       updateValues.assigned_to = data.assignedTo
@@ -206,17 +178,13 @@ export class DrizzleKanbanTaskRepository implements IKanbanTaskRepository {
   }
 
   private toEntity(row: typeof kanbanTasks.$inferSelect): KanbanTaskEntity {
-    const content = JSON.parse(row.encrypted_content) as TaskContent
     return {
       id: row.id,
       columnId: row.column_id,
       boardId: row.board_id,
       assignedTo: row.assigned_to,
       position: row.position,
-      title: content.title,
-      description: content.description,
-      effort: content.effort,
-      dueDate: content.dueDate,
+      encryptedContent: row.encrypted_content,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }

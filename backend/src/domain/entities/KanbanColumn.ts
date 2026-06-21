@@ -3,6 +3,6 @@ export interface KanbanColumnEntity {
   id: string
   boardId: string
   position: number
-  title: string
+  encryptedContent: string
   createdAt: Date
 }

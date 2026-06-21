@@ -10,7 +10,7 @@ export class DrizzleKanbanColumnRepository implements IKanbanColumnRepository {
 
   async create(data: {
     boardId: string
-    title: string
+    encryptedContent: string
     position: number
   }): Promise<KanbanColumnEntity> {
     const [row] = await this.db
@@ -18,7 +18,7 @@ export class DrizzleKanbanColumnRepository implements IKanbanColumnRepository {
       .values({
         board_id: data.boardId,
         position: data.position,
-        encrypted_content: JSON.stringify({ title: data.title }),
+        encrypted_content: data.encryptedContent,
       })
       .returning()
 
@@ -44,21 +44,10 @@ export class DrizzleKanbanColumnRepository implements IKanbanColumnRepository {
     return result?.max ?? 0
   }
 
-  async update(id: string, data: { title?: string; position?: number }): Promise<KanbanColumnEntity> {
-    const existing = await this.db
-      .select()
-      .from(kanbanColumns)
-      .where(eq(kanbanColumns.id, id))
-      .then((rows) => rows[0]!)
-
-    const currentContent = JSON.parse(existing.encrypted_content) as { title: string }
-
-    const newContent = {
-      title: data.title !== undefined ? data.title : currentContent.title,
-    }
-
-    const updateValues: Partial<typeof kanbanColumns.$inferInsert> = {
-      encrypted_content: JSON.stringify(newContent),
+  async update(id: string, data: { encryptedContent?: string; position?: number }): Promise<KanbanColumnEntity> {
+    const updateValues: Partial<typeof kanbanColumns.$inferInsert> = {}
+    if (data.encryptedContent !== undefined) {
+      updateValues.encrypted_content = data.encryptedContent
     }
     if (data.position !== undefined) {
       updateValues.position = data.position
@@ -78,12 +67,11 @@ export class DrizzleKanbanColumnRepository implements IKanbanColumnRepository {
   }
 
   private toEntity(row: typeof kanbanColumns.$inferSelect): KanbanColumnEntity {
-    const content = JSON.parse(row.encrypted_content) as { title: string }
     return {
       id: row.id,
       boardId: row.board_id,
       position: row.position,
-      title: content.title,
+      encryptedContent: row.encrypted_content,
       createdAt: row.created_at,
     }
   }

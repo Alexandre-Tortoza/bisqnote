@@ -5,7 +5,7 @@ export interface IKanbanTaskRepository {
   create(data: {
     columnId: string
     boardId: string
-    title: string
+    encryptedContent: string
     position: number
   }): Promise<KanbanTaskEntity>
 
@@ -18,10 +18,7 @@ export interface IKanbanTaskRepository {
   update(
     id: string,
     data: {
-      title?: string
-      description?: string | null
-      effort?: number | null
-      dueDate?: string | null
+      encryptedContent?: string
       assignedTo?: string | null
     },
   ): Promise<KanbanTaskEntity>

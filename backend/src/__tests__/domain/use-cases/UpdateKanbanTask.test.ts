@@ -1,20 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { IUserRepository } from '../../../domain/repositories/IUserRepository.js'
 import type { IMemberRepository } from '../../../domain/repositories/IMemberRepository.js'
 import type { IKanbanTaskRepository } from '../../../domain/repositories/IKanbanTaskRepository.js'
-import type { UserEntity } from '../../../domain/entities/User.js'
 import type { BoardMemberEntity } from '../../../domain/entities/BoardMember.js'
 import type { KanbanTaskEntity } from '../../../domain/entities/KanbanTask.js'
 import { UpdateKanbanTaskUseCase } from '../../../domain/use-cases/UpdateKanbanTask.js'
-
-const makeUser = (overrides: Partial<UserEntity> = {}): UserEntity => ({
-  id: 'user-1',
-  username: 'alice',
-  passwordHash: 'hash',
-  tokenHash: 'sha256token',
-  createdAt: new Date(),
-  ...overrides,
-})
 
 const makeMember = (overrides: Partial<BoardMemberEntity> = {}): BoardMemberEntity => ({
   id: 'member-1',
@@ -32,27 +21,17 @@ const makeTask = (overrides: Partial<KanbanTaskEntity> = {}): KanbanTaskEntity =
   boardId: 'board-1',
   assignedTo: null,
   position: 1,
-  title: 'Fix bug',
-  description: null,
-  effort: null,
-  dueDate: null,
+  encryptedContent: 'encrypted-task',
   createdAt: new Date(),
   updatedAt: new Date(),
   ...overrides,
 })
 
 describe('UpdateKanbanTaskUseCase', () => {
-  let userRepo: IUserRepository
   let memberRepo: IMemberRepository
   let taskRepo: IKanbanTaskRepository
 
   beforeEach(() => {
-    userRepo = {
-      create: vi.fn(),
-      findByUsername: vi.fn(),
-      findByTokenHash: vi.fn().mockResolvedValue(makeUser()),
-      updateTokenHash: vi.fn(),
-    }
     memberRepo = {
       create: vi.fn(),
       findById: vi.fn(),
@@ -64,44 +43,40 @@ describe('UpdateKanbanTaskUseCase', () => {
       create: vi.fn(),
       findByBoardId: vi.fn().mockResolvedValue([makeTask()]),
       getMaxPositionInColumn: vi.fn(),
-      update: vi.fn().mockResolvedValue(makeTask({ title: 'Updated', effort: 3 })),
+      update: vi.fn().mockResolvedValue(makeTask({ encryptedContent: 'encrypted-updated' })),
       move: vi.fn(),
       delete: vi.fn(),
     }
   })
 
   it('updates only the provided fields', async () => {
-    const useCase = new UpdateKanbanTaskUseCase(userRepo, memberRepo, taskRepo)
-    await useCase.execute({ userToken: 'token', boardId: 'board-1', taskId: 'task-1', title: 'Updated', effort: 3 })
+    const useCase = new UpdateKanbanTaskUseCase(memberRepo, taskRepo)
+    await useCase.execute({ userId: 'user-1', boardId: 'board-1', taskId: 'task-1', encryptedContent: 'encrypted-updated' })
 
-    expect(taskRepo.update).toHaveBeenCalledWith('task-1', { title: 'Updated', effort: 3 })
+    expect(taskRepo.update).toHaveBeenCalledWith('task-1', { encryptedContent: 'encrypted-updated' })
   })
 
   it('returns the updated task entity', async () => {
-    const useCase = new UpdateKanbanTaskUseCase(userRepo, memberRepo, taskRepo)
-    const result = await useCase.execute({ userToken: 'token', boardId: 'board-1', taskId: 'task-1', title: 'Updated' })
+    const useCase = new UpdateKanbanTaskUseCase(memberRepo, taskRepo)
+    const result = await useCase.execute({ userId: 'user-1', boardId: 'board-1', taskId: 'task-1', encryptedContent: 'encrypted-updated' })
 
-    expect(result.title).toBe('Updated')
+    expect(result.encryptedContent).toBe('encrypted-updated')
   })
 
-  it('can update description, dueDate, and assignedTo', async () => {
+  it('can update assignedTo', async () => {
     vi.mocked(taskRepo.update).mockResolvedValue(
-      makeTask({ description: 'some desc', dueDate: '2025-12-31', assignedTo: 'member-2' }),
+      makeTask({ assignedTo: 'member-2' }),
     )
 
-    const useCase = new UpdateKanbanTaskUseCase(userRepo, memberRepo, taskRepo)
+    const useCase = new UpdateKanbanTaskUseCase(memberRepo, taskRepo)
     const result = await useCase.execute({
-      userToken: 'token',
+      userId: 'user-1',
       boardId: 'board-1',
       taskId: 'task-1',
-      description: 'some desc',
-      dueDate: '2025-12-31',
       assignedTo: 'member-2',
     })
 
     expect(taskRepo.update).toHaveBeenCalledWith('task-1', {
-      description: 'some desc',
-      dueDate: '2025-12-31',
       assignedTo: 'member-2',
     })
     expect(result.assignedTo).toBe('member-2')
@@ -110,27 +85,18 @@ describe('UpdateKanbanTaskUseCase', () => {
   it('throws TASK_NOT_FOUND when task does not belong to the board', async () => {
     vi.mocked(taskRepo.findByBoardId).mockResolvedValue([])
 
-    const useCase = new UpdateKanbanTaskUseCase(userRepo, memberRepo, taskRepo)
+    const useCase = new UpdateKanbanTaskUseCase(memberRepo, taskRepo)
     await expect(
-      useCase.execute({ userToken: 'token', boardId: 'board-1', taskId: 'task-x', title: 'x' }),
+      useCase.execute({ userId: 'user-1', boardId: 'board-1', taskId: 'task-x', encryptedContent: 'x' }),
     ).rejects.toMatchObject({ code: 'TASK_NOT_FOUND' })
-  })
-
-  it('throws INVALID_USER_TOKEN when token is invalid', async () => {
-    vi.mocked(userRepo.findByTokenHash).mockResolvedValue(null)
-
-    const useCase = new UpdateKanbanTaskUseCase(userRepo, memberRepo, taskRepo)
-    await expect(
-      useCase.execute({ userToken: 'bad', boardId: 'board-1', taskId: 'task-1' }),
-    ).rejects.toMatchObject({ code: 'INVALID_USER_TOKEN' })
   })
 
   it('throws MEMBER_NOT_FOUND when user is not a board member', async () => {
     vi.mocked(memberRepo.findByUserAndBoard).mockResolvedValue(null)
 
-    const useCase = new UpdateKanbanTaskUseCase(userRepo, memberRepo, taskRepo)
+    const useCase = new UpdateKanbanTaskUseCase(memberRepo, taskRepo)
     await expect(
-      useCase.execute({ userToken: 'token', boardId: 'board-1', taskId: 'task-1' }),
+      useCase.execute({ userId: 'user-1', boardId: 'board-1', taskId: 'task-1' }),
     ).rejects.toMatchObject({ code: 'MEMBER_NOT_FOUND' })
   })
 })

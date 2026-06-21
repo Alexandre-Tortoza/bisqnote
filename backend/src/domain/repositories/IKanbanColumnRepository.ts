@@ -4,7 +4,7 @@ import type { KanbanColumnEntity } from '../entities/KanbanColumn.js'
 export interface IKanbanColumnRepository {
   create(data: {
     boardId: string
-    title: string
+    encryptedContent: string
     position: number
   }): Promise<KanbanColumnEntity>
 
@@ -14,7 +14,7 @@ export interface IKanbanColumnRepository {
   /** Returns the highest position value for columns in a board, or 0 if none. */
   getMaxPosition(boardId: string): Promise<number>
 
-  update(id: string, data: { title?: string; position?: number }): Promise<KanbanColumnEntity>
+  update(id: string, data: { encryptedContent?: string; position?: number }): Promise<KanbanColumnEntity>
 
   delete(id: string): Promise<void>
 }
