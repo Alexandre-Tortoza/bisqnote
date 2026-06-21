@@ -25,6 +25,13 @@ const credentialsSchema = {
 // Per-route rate-limit config used by @fastify/rate-limit
 const authRateLimit = { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } }
 
+const COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  path: '/',
+  secure: process.env['NODE_ENV'] === 'production',
+}
+
 /** User HTTP routes: register and login. */
 export async function userRoutes(fastify: FastifyInstance, options: UserRoutesOptions) {
   fastify.post<{ Body: { username: string; password: string } }>(
@@ -34,7 +41,9 @@ export async function userRoutes(fastify: FastifyInstance, options: UserRoutesOp
       const useCase = new RegisterUserUseCase(options.userRepo)
       try {
         const result = await useCase.execute(request.body)
-        return reply.status(201).send(result)
+        const token = await reply.jwtSign({ userId: result.userId, username: result.username })
+        reply.setCookie('token', token, COOKIE_OPTS)
+        return reply.status(201).send({ userId: result.userId, username: result.username })
       } catch (err) {
         if (err instanceof AppError) {
           if (err.code === 'USER_ALREADY_EXISTS') return reply.status(409).send({ error: err.message })
@@ -52,7 +61,9 @@ export async function userRoutes(fastify: FastifyInstance, options: UserRoutesOp
       const useCase = new AuthenticateUserUseCase(options.userRepo)
       try {
         const result = await useCase.execute(request.body)
-        return reply.send(result)
+        const token = await reply.jwtSign({ userId: result.userId, username: result.username })
+        reply.setCookie('token', token, COOKIE_OPTS)
+        return reply.send({ userId: result.userId, username: result.username })
       } catch (err) {
         if (err instanceof AppError) {
           if (err.code === 'INVALID_CREDENTIALS') return reply.status(401).send({ error: err.message })

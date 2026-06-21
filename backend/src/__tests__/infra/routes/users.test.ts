@@ -5,6 +5,7 @@ import type { IUserRepository } from '../../../domain/repositories/IUserReposito
 import type { UserEntity } from '../../../domain/entities/User.js'
 import { userRoutes } from '../../../infra/http/routes/users.js'
 import { errorHandlerPlugin } from '../../../infra/http/plugins/errorHandler.js'
+import { jwtAuthPlugin } from '../../../infra/http/plugins/jwtAuth.js'
 
 const makeUser = (overrides: Partial<UserEntity> = {}): UserEntity => ({
   id: 'user-1',
@@ -27,6 +28,7 @@ function makeFakeUserRepo(): IUserRepository {
 async function buildTestApp(userRepo: IUserRepository) {
   const app = Fastify({ logger: false })
   await app.register(errorHandlerPlugin)
+  await app.register(jwtAuthPlugin)
   const dbMockPlugin = fp(async (fastify) => {
     fastify.decorate('db', {} as never)
   })
@@ -42,7 +44,7 @@ describe('POST /api/users/register', () => {
     userRepo = makeFakeUserRepo()
   })
 
-  it('returns 201 with userId, userToken, username on success', async () => {
+  it('returns 201 with userId, username and sets JWT cookie on success', async () => {
     const app = await buildTestApp(userRepo)
     const res = await app.inject({
       method: 'POST',
@@ -52,7 +54,12 @@ describe('POST /api/users/register', () => {
     expect(res.statusCode).toBe(201)
     const body = res.json()
     expect(body).toMatchObject({ userId: 'user-1', username: 'johndoe' })
-    expect(typeof body.userToken).toBe('string')
+    expect(body).not.toHaveProperty('userToken')
+    const cookies = res.cookies
+    expect(cookies).toHaveLength(1)
+    expect(cookies[0]!.name).toBe('token')
+    expect(cookies[0]!.httpOnly).toBe(true)
+    expect(cookies[0]!.sameSite).toBe('Lax')
   })
 
   it('returns 400 when username is missing', async () => {
@@ -128,7 +135,7 @@ describe('POST /api/users/login', () => {
     vi.mocked(userRepo.findByUsername).mockResolvedValue(makeUser({ passwordHash }))
   })
 
-  it('returns 200 with userId, userToken, username on valid credentials', async () => {
+  it('returns 200 with userId, username and sets JWT cookie on valid credentials', async () => {
     const app = await buildTestApp(userRepo)
     const res = await app.inject({
       method: 'POST',
@@ -138,7 +145,10 @@ describe('POST /api/users/login', () => {
     expect(res.statusCode).toBe(200)
     const body = res.json()
     expect(body).toMatchObject({ userId: 'user-1', username: 'johndoe' })
-    expect(typeof body.userToken).toBe('string')
+    expect(body).not.toHaveProperty('userToken')
+    const cookies = res.cookies
+    expect(cookies).toHaveLength(1)
+    expect(cookies[0]!.name).toBe('token')
   })
 
   it('returns 400 when username is missing', async () => {
