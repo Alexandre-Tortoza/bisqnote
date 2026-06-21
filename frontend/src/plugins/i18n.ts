@@ -19,7 +19,7 @@ function detectLocale(): string {
   for (const lang of languages) {
     if (supported.includes(lang)) return lang
     // match region-less: "pt-PT" → "pt" → resolves to pt-BR
-    const base = lang.split('-')[0]
+    const base = lang.split('-')[0] ?? ''
     if (supported.includes(base)) return base
   }
   return 'en'

@@ -53,7 +53,7 @@ describe('LocaleToggle', () => {
     const wrapper = await mountToggle()
     await wrapper.find('[data-trigger]').trigger('click')
     const options = wrapper.findAll('[data-option]')
-    await options[1].trigger('click') // pt-BR
+    await options[1]!.trigger('click') // pt-BR
     expect(mockLocale.value).toBe('pt-BR')
     expect(wrapper.find('[data-dropdown]').exists()).toBe(false)
   })
