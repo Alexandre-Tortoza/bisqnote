@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AppButton from '@/components/ui/AppButton.vue'
-import { useUserStore } from '@/stores/user'
+import { useSessionStore } from '@/stores/session'
 import { useKanban } from '../composables/useKanban'
 import KanbanBoard from '../components/KanbanBoard.vue'
 import TaskModal from '../components/TaskModal.vue'
@@ -11,8 +11,7 @@ import type { KanbanTask } from '../composables/useKanban'
 
 const { t } = useI18n()
 const route = useRoute()
-const userStore = useUserStore()
-
+const sessionStore = useSessionStore()
 const { columns, members, status, error, connect, createColumn, updateColumn, deleteColumn, createTask, updateTask, moveTask, deleteTask } = useKanban()
 
 const boardId = route.params['id'] as string
@@ -25,8 +24,10 @@ const activeTaskColumnId = ref('')
 const isModalOpen = ref(false)
 
 onMounted(() => {
-  const token = userStore.user?.userToken
-  if (token) connect(boardId, token)
+  const key = sessionStore.session?.boardKey
+  if (key) {
+    connect(boardId, key)
+  }
 })
 
 function openNewTaskModal(columnId: string) {
