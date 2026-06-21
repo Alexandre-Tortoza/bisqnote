@@ -1,0 +1,8 @@
+export { BoardEnterView } from './enter'
+export { BoardHomeView } from './home'
+export { BoardKanbanView } from './kanban'
+export { BoardCalendarView } from './calendar'
+export { BoardChatView } from './chat'
+export { BoardInviteView } from './invite'
+export { BoardConfigView } from './config'
+export { BoardFilesView } from './files'
