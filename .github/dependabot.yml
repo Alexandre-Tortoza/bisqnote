@@ -1,0 +1,40 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      vue-ecosystem:
+        patterns: ["vue", "vue-router", "pinia", "@vue/*"]
+      vite-ecosystem:
+        patterns: ["vite", "@vitejs/*"]
+      testing:
+        patterns: ["vitest", "@vitest/*", "@playwright/*", "@vue/test-utils"]
+      linting:
+        patterns: ["eslint*", "oxlint", "oxfmt", "@typescript-eslint/*"]
+
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      fastify-ecosystem:
+        patterns: ["fastify", "@fastify/*"]
+      database:
+        patterns: ["drizzle-*", "postgres"]
+      testing:
+        patterns: ["vitest", "@vitest/*"]
+      linting:
+        patterns: ["eslint*", "typescript-eslint", "@typescript-eslint/*"]
+      typescript:
+        patterns: ["typescript", "@types/*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday

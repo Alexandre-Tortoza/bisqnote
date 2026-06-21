@@ -1,0 +1,53 @@
+@theme {
+  /* Brand palette */
+  --color-brand-50: #fef2f1;
+  --color-brand-100: #fde0de;
+  --color-brand-200: #fbc2be;
+  --color-brand-300: #f8a09a;
+  --color-brand-400: #f58378;
+  --color-brand-500: #f2695c;
+  --color-brand-600: #e44c3e;
+  --color-brand-700: #c83529;
+  --color-brand-800: #9e2820;
+  --color-brand-900: #6f1c16;
+  --color-brand-950: #440e0a;
+  --color-brand-1000: #1e0403;
+
+  /* Fonts */
+  --font-display: "Syne", sans-serif;
+  --font-mono: "Space Mono", monospace;
+  --font-serif: "Instrument Serif", serif;
+
+  /* Neo-brutalist semantic colors — light defaults */
+  --color-nb-bg: #ffffff;
+  --color-nb-surface: #f5f5f5;
+  --color-nb-border: #000000;
+  --color-nb-text: #000000;
+  --color-nb-muted: #555555;
+  --color-nb-accent: #f2695c;
+}
+
+/* Dark mode overrides — cascade into Tailwind utilities via CSS variables */
+.dark {
+  --color-nb-bg: #000000;
+  --color-nb-surface: #0a0101;
+  --color-nb-border: #9e2820;
+  --color-nb-text: #ffffff;
+  --color-nb-muted: #999999;
+  --color-nb-accent: #f2695c;
+}
+
+/* Neo-brutalist shadow tokens (complex values, not Tailwind utilities) */
+:root {
+  --nb-shadow: 4px 4px 0 var(--color-nb-border);
+  --nb-shadow-sm: 2px 2px 0 var(--color-nb-border);
+  --nb-shadow-lg: 6px 6px 0 var(--color-nb-border);
+  --nb-accent-shadow: 4px 4px 0 var(--color-brand-700);
+}
+
+/* Base neo-brutalist resets */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
