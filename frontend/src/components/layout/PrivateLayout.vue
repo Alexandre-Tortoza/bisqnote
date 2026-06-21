@@ -1,28 +1,40 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import ThemeToggle from '@/components/ui/ThemeToggle.vue'
-import LocaleToggle from '@/components/ui/LocaleToggle.vue'
-import { useUserStore } from '@/stores/user'
-import { BsPerson } from 'vue-icons-plus/bs'
-import { TbHome, TbMail, TbLayoutKanban, TbCalendar, TbMessages, TbSettings } from 'vue-icons-plus/tb'
+import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
+import ThemeToggle from "@/components/ui/ThemeToggle.vue";
+import LocaleToggle from "@/components/ui/LocaleToggle.vue";
+import { useUserStore } from "@/stores/user";
+import { useSessionStore } from "@/stores/session";
+import { BsPerson } from "vue-icons-plus/bs";
+import {
+  TbHome,
+  TbMail,
+  TbLayoutKanban,
+  TbCalendar,
+  TbMessages,
+  TbSettings,
+  TbPaperclip,
+  TbInfoCircle,
+} from "vue-icons-plus/tb";
 
-const route = useRoute()
-const { t } = useI18n()
-const userStore = useUserStore()
+const route = useRoute();
+const { t } = useI18n();
+const userStore = useUserStore();
+const session = useSessionStore();
 
 const navItems = [
-  { name: 'board-home', key: 'home', icon: TbHome },
-  { name: 'board-invite', key: 'invite', icon: TbMail },
-  { name: 'board-kanban', key: 'kanban', icon: TbLayoutKanban },
-  { name: 'board-calendar', key: 'calendar', icon: TbCalendar },
-  { name: 'board-chat', key: 'chat', icon: TbMessages },
-  { name: 'board-config', key: 'config', icon: TbSettings },
-]
+  // { name: "board-home", key: "home", icon: TbHome },  // Vamos desativar por enquanto !
+  { name: "board-invite", key: "invite", icon: TbMail },
+  { name: "board-kanban", key: "kanban", icon: TbLayoutKanban },
+  { name: "board-calendar", key: "calendar", icon: TbCalendar },
+  { name: "board-chat", key: "chat", icon: TbMessages },
+  // { name: 'board-config', key: 'config', icon: TbSettings },  // Vamos desativar por enquanto !
+  { name: "board-files", key: "files", icon: TbPaperclip },
+];
 </script>
 
 <template>
-  <div class="min-h-screen bg-nb-bg text-nb-text flex flex-col">
+  <div class="h-screen bg-nb-bg text-nb-text flex flex-col">
     <!-- Top header -->
     <header class="border-b-2 border-nb-border bg-nb-surface h-14 flex items-center shrink-0">
       <div class="w-48 px-4 border-r-2 border-nb-border h-full flex items-center shrink-0">
@@ -36,7 +48,7 @@ const navItems = [
 
       <div class="flex-1 px-6 flex items-center justify-between">
         <span class="font-display text-lg font-black tracking-tight">
-          {{ t('board.title', { id: route.params['id'] }) }}
+          {{ session.session?.boardName ?? "BISQNODE" }}
         </span>
         <div class="flex items-center gap-1">
           <LocaleToggle />
@@ -66,13 +78,24 @@ const navItems = [
           </RouterLink>
         </nav>
 
+        <!-- Support link -->
+        <RouterLink
+          :to="{ name: 'support' }"
+          class="flex items-center gap-2 px-3 py-2 font-mono text-xs text-nb-muted hover:text-nb-text transition-colors border-t-2 border-nb-border"
+        >
+          <TbInfoCircle :size="14" class="shrink-0" />
+          {{ t("support.navLabel") }}
+        </RouterLink>
+
         <!-- User info -->
         <div class="border-t-2 border-nb-border px-3 py-3 flex items-center gap-2 shrink-0">
-          <div class="w-7 h-7 border-2 border-nb-border bg-nb-bg flex items-center justify-center shrink-0">
+          <div
+            class="w-7 h-7 border-2 border-nb-border bg-nb-bg flex items-center justify-center shrink-0"
+          >
             <BsPerson :size="14" />
           </div>
           <span class="font-mono text-xs font-bold text-nb-text truncate">
-            {{ userStore.user?.username ?? '—' }}
+            {{ userStore.user?.username ?? "—" }}
           </span>
         </div>
       </aside>

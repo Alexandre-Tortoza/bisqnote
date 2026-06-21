@@ -25,7 +25,7 @@ describe('api.post', () => {
       status: 400,
       json: async () => ({ error: 'Password required for private boards' }),
     })
-    const err = await api.post('/api/boards', {}).catch((e) => e)
+    const err = (await api.post('/api/boards', {}).catch((e) => e)) as ApiError
     expect(err).toBeInstanceOf(ApiError)
     expect(err.status).toBe(400)
     expect(err.message).toBe('Password required for private boards')
@@ -38,7 +38,7 @@ describe('api.post', () => {
       json: async () => ({ something: 'else' }),
     })
 
-    const err = await api.post('/api/boards', {}).catch((e) => e)
+    const err = (await api.post('/api/boards', {}).catch((e) => e)) as ApiError
     expect(err).toBeInstanceOf(ApiError)
     expect(err.status).toBe(500)
     expect(err.message).toBe('POST /api/boards failed')
@@ -51,7 +51,7 @@ describe('api.post', () => {
       json: async () => { throw new SyntaxError('unexpected token') },
     })
 
-    const err = await api.post('/api/boards', {}).catch((e) => e)
+    const err = (await api.post('/api/boards', {}).catch((e) => e)) as ApiError
     expect(err).toBeInstanceOf(ApiError)
     expect(err.status).toBe(503)
     expect(err.message).toBe('POST /api/boards failed')

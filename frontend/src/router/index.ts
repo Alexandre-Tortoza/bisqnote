@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
+import { SupportView } from '@/features/support/index'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,6 +20,7 @@ const router = createRouter({
           name: 'join',
           component: () => import('@/features/public/views/JoinView.vue'),
         },
+        { path: 'support', name: 'support', component: SupportView },
       ],
     },
     {
@@ -63,6 +65,11 @@ const router = createRouter({
               path: 'config',
               name: 'board-config',
               component: () => import('@/features/board/config/views/BoardConfigView.vue'),
+            },
+            {
+              path: 'files',
+              name: 'board-files',
+              component: () => import('@/features/board/files/views/BoardFilesView.vue'),
             },
           ],
         },
