@@ -6,7 +6,6 @@ import { useUserStore } from '@/stores/user'
 
 interface UserAuthResponse {
   userId: string
-  userToken: string
   username: string
 }
 

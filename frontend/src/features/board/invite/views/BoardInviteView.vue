@@ -31,7 +31,7 @@ async function copyLink() {
 </script>
 
 <template>
-  <div class="p-6 flex flex-col items-start gap-6 max-w-lg">
+  <div class="min-h-full flex flex-col items-center justify-center p-6 gap-6 max-w-lg mx-auto w-full">
     <!-- Header -->
     <div class="flex flex-col gap-1">
       <h1 class="font-mono text-xs font-bold uppercase tracking-wider text-nb-text">

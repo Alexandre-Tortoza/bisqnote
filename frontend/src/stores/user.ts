@@ -4,7 +4,6 @@ import { ref } from 'vue'
 export interface UserSession {
   userId: string
   username: string
-  userToken: string
 }
 
 const STORAGE_KEY = 'bisqnode-user'

@@ -1,3 +1,6 @@
 export { default as HomeView } from './views/HomeView.vue'
 export { default as CreateView } from './views/CreateView.vue'
 export { default as JoinView } from './views/JoinView.vue'
+export { useJoinBoard } from './composables/useJoinBoard'
+export type { BoardMeta } from './composables/useJoinBoard'
+export { default as UserAuthStep } from './components/UserAuthStep.vue'

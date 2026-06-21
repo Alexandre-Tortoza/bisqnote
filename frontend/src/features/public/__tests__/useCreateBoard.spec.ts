@@ -8,6 +8,11 @@ vi.mock('@/services/api', () => ({
   },
 }))
 
+vi.mock('@/utils/crypto', () => ({
+  deriveBoardKey: vi.fn().mockResolvedValue({}),
+  exportKeyAsBase64: vi.fn().mockResolvedValue('base64key=='),
+}))
+
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
 
 const mockSetSession = vi.fn()
@@ -17,9 +22,7 @@ vi.mock('@/stores/session', () => ({
   useSessionStore: () => ({ setSession: mockSetSession }),
 }))
 
-vi.mock('@/stores/user', () => ({
-  useUserStore: () => ({ user: { userToken: 'test-user-token' }, hasUser: () => true }),
-}))
+
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: mockPush }),
@@ -37,10 +40,16 @@ describe('useCreateBoard', () => {
     expect(api.post).toHaveBeenCalledWith('/api/boards', expect.objectContaining({ name: 'My Board', isPrivate: false }))
   })
 
-  it('calls setSession with returned data', async () => {
+  it('calls setSession with returned data and board key', async () => {
     const { createBoard } = useCreateBoard()
     await createBoard({ name: 'My Board', isPrivate: false })
-    expect(mockSetSession).toHaveBeenCalledWith({ boardId: 'board-1', memberToken: 'tok', role: 'owner' })
+    expect(mockSetSession).toHaveBeenCalledWith({
+      boardId: 'board-1',
+      boardName: 'My Board',
+      memberToken: 'tok',
+      role: 'owner',
+      boardKey: 'base64key==',
+    })
   })
 
   it('navigates to /board/:id after success', async () => {

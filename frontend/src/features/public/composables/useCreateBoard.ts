@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { api } from '@/services/api'
 import { ApiError } from '@/services/ApiError'
 import { useSessionStore } from '@/stores/session'
-import { useUserStore } from '@/stores/user'
+import { deriveBoardKey, exportKeyAsBase64 } from '@/utils/crypto'
 
 export interface CreateBoardPayload {
   name: string
@@ -24,7 +24,6 @@ export function useCreateBoard() {
   const error = ref<string | null>(null)
   const router = useRouter()
   const session = useSessionStore()
-  const userStore = useUserStore()
   const { t } = useI18n()
 
   async function createBoard(payload: CreateBoardPayload): Promise<void> {
@@ -32,11 +31,10 @@ export function useCreateBoard() {
     error.value = null
 
     try {
-      const result = await api.post<CreateBoardResponse>('/api/boards', {
-        ...payload,
-        userToken: userStore.user?.userToken,
-      })
-      session.setSession(result)
+      const result = await api.post<CreateBoardResponse>('/api/boards', payload)
+      const cryptoKey = await deriveBoardKey(payload.password ?? result.boardId, result.boardId)
+      const boardKey = await exportKeyAsBase64(cryptoKey)
+      session.setSession({ ...result, boardKey, boardName: payload.name })
       await router.push(`/board/${result.boardId}`)
     } catch (err) {
       if (err instanceof ApiError) {

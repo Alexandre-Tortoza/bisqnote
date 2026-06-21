@@ -3,8 +3,15 @@ import { ref } from 'vue'
 
 export interface BoardSession {
   boardId: string
+  boardName: string
   memberToken: string
   role: 'owner' | 'member'
+  // NOTE: memberToken is stored for potential future use (e.g. board-scoped
+  // access tokens). It is currently not sent in any API request — authentication
+  // is handled via the user JWT cookie (httpOnly, not accessible to JS).
+  // memberToken was originally designed for go-back-link recovery flows.
+  /** Base64-encoded raw AES-256-GCM key for encrypting/decrypting board files. */
+  boardKey: string | null
 }
 
 const STORAGE_KEY = 'bisqnode-session'

@@ -14,8 +14,10 @@ vi.mock('../composables/useCreateBoard', () => ({
 }))
 
 vi.mock('@/stores/user', () => ({
-  useUserStore: () => ({ user: { userToken: 'test-token' }, hasUser: () => true }),
+  useUserStore: () => ({ hasUser: () => true }),
 }))
+
+
 
 const mountCreate = () =>
   mount(CreateView, {
