@@ -45,7 +45,7 @@ function makeFakes() {
         id: 'msg-1',
         boardId: 'board-1',
         memberId: 'member-1',
-        content: JSON.stringify({ text: 'hello', username: 'alice' }),
+        content: 'encrypted-hello',
         createdAt: new Date(),
       }),
       findByBoardId: vi.fn().mockResolvedValue([]),

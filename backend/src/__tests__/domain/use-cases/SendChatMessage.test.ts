@@ -1,20 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { IUserRepository } from '../../../domain/repositories/IUserRepository.js'
 import type { IMemberRepository } from '../../../domain/repositories/IMemberRepository.js'
 import type { IChatMessageRepository } from '../../../domain/repositories/IChatMessageRepository.js'
-import type { UserEntity } from '../../../domain/entities/User.js'
 import type { BoardMemberEntity } from '../../../domain/entities/BoardMember.js'
 import type { ChatMessageEntity } from '../../../domain/entities/ChatMessage.js'
 import { SendChatMessageUseCase } from '../../../domain/use-cases/SendChatMessage.js'
-
-const makeUser = (overrides: Partial<UserEntity> = {}): UserEntity => ({
-  id: 'user-1',
-  username: 'alice',
-  passwordHash: 'hash',
-  tokenHash: 'sha256token',
-  createdAt: new Date(),
-  ...overrides,
-})
 
 const makeMember = (overrides: Partial<BoardMemberEntity> = {}): BoardMemberEntity => ({
   id: 'member-1',
@@ -30,23 +19,16 @@ const makeMessage = (overrides: Partial<ChatMessageEntity> = {}): ChatMessageEnt
   id: 'msg-1',
   boardId: 'board-1',
   memberId: 'member-1',
-  content: JSON.stringify({ text: 'hello', username: 'alice' }),
+  content: 'encrypted-hello',
   createdAt: new Date(),
   ...overrides,
 })
 
 describe('SendChatMessageUseCase', () => {
-  let userRepo: IUserRepository
   let memberRepo: IMemberRepository
   let chatRepo: IChatMessageRepository
 
   beforeEach(() => {
-    userRepo = {
-      create: vi.fn(),
-      findByUsername: vi.fn(),
-      findByTokenHash: vi.fn().mockResolvedValue(makeUser()),
-      updateTokenHash: vi.fn(),
-    }
     memberRepo = {
       create: vi.fn(),
       findById: vi.fn(),
@@ -61,53 +43,44 @@ describe('SendChatMessageUseCase', () => {
   })
 
   it('persists message and returns chat message with username', async () => {
-    const useCase = new SendChatMessageUseCase(userRepo, memberRepo, chatRepo)
-    const result = await useCase.execute({ userToken: 'token', boardId: 'board-1', text: 'hello' })
+    const useCase = new SendChatMessageUseCase(memberRepo, chatRepo)
+    const result = await useCase.execute({ userId: 'user-1', boardId: 'board-1', text: 'encrypted-hello', username: 'alice' })
 
     expect(chatRepo.create).toHaveBeenCalledWith({
       boardId: 'board-1',
       memberId: 'member-1',
-      content: JSON.stringify({ text: 'hello', username: 'alice' }),
+      content: 'encrypted-hello',
     })
     expect(result).toMatchObject({
       id: 'msg-1',
       boardId: 'board-1',
       memberId: 'member-1',
-      text: 'hello',
+      text: 'encrypted-hello',
       username: 'alice',
     })
     expect(result.createdAt).toBeInstanceOf(Date)
   })
 
-  it('throws INVALID_USER_TOKEN when userToken is invalid', async () => {
-    vi.mocked(userRepo.findByTokenHash).mockResolvedValue(null)
-
-    const useCase = new SendChatMessageUseCase(userRepo, memberRepo, chatRepo)
-    await expect(
-      useCase.execute({ userToken: 'bad', boardId: 'board-1', text: 'hi' }),
-    ).rejects.toMatchObject({ code: 'INVALID_USER_TOKEN' })
-  })
-
   it('throws MEMBER_NOT_FOUND when user is not a member of the board', async () => {
     vi.mocked(memberRepo.findByUserAndBoard).mockResolvedValue(null)
 
-    const useCase = new SendChatMessageUseCase(userRepo, memberRepo, chatRepo)
+    const useCase = new SendChatMessageUseCase(memberRepo, chatRepo)
     await expect(
-      useCase.execute({ userToken: 'token', boardId: 'board-1', text: 'hi' }),
+      useCase.execute({ userId: 'user-1', boardId: 'board-1', text: 'hi', username: 'alice' }),
     ).rejects.toMatchObject({ code: 'MEMBER_NOT_FOUND' })
   })
 
   it('throws INVALID_INPUT when text exceeds 2000 characters', async () => {
-    const useCase = new SendChatMessageUseCase(userRepo, memberRepo, chatRepo)
+    const useCase = new SendChatMessageUseCase(memberRepo, chatRepo)
     await expect(
-      useCase.execute({ userToken: 'token', boardId: 'board-1', text: 'x'.repeat(2001) }),
+      useCase.execute({ userId: 'user-1', boardId: 'board-1', text: 'x'.repeat(2001), username: 'alice' }),
     ).rejects.toMatchObject({ code: 'INVALID_INPUT' })
   })
 
   it('throws INVALID_INPUT when text is empty', async () => {
-    const useCase = new SendChatMessageUseCase(userRepo, memberRepo, chatRepo)
+    const useCase = new SendChatMessageUseCase(memberRepo, chatRepo)
     await expect(
-      useCase.execute({ userToken: 'token', boardId: 'board-1', text: '' }),
+      useCase.execute({ userId: 'user-1', boardId: 'board-1', text: '', username: 'alice' }),
     ).rejects.toMatchObject({ code: 'INVALID_INPUT' })
   })
 })
